@@ -6,3 +6,4 @@ azure-functions
 pyodbc
 requests
 pytz
+xmltodict

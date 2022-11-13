@@ -42,6 +42,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=400
         )
 
+    #Get the individual occurrence data
     query = f"?*:*&rows=200&wt=json&q=occurrenceId:{occurrenceId}"
     r = requests.get(hohk_api_url + query, auth=(hohk_api_username, hohk_api_password))
     json_response = r.json()
@@ -209,46 +210,90 @@ def getObject(source_job_id, status, json_list):
     return return_obj
 
 
-def mapJSONData(json_dict, source_job_id):
+def mapJSONData(json_dict):
     sdt = datetime.strptime(json_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S%z')
     edt = datetime.strptime(json_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S%z')
 
-    json_dict['source_job_id'] = source_job_id
-    json_dict['name'] = json_dict.pop('title')
-    json_dict['ref_code'] = json_dict.pop('occurrenceId')
-    json_dict['overall_start_date'] = json_dict.pop('startDateTime')
-    json_dict['overall_end_date'] = json_dict.pop('endDateTime')
-    json_dict['application_start_date'] = json_dict.pop('ocCreatedDate')
-    json_dict['application_end_date'] = (
-        edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%SZ')
-    json_dict['locations'] = [json_dict.pop('locationAddress')]
-    json_dict['tags_roles'] = json_dict.pop('categoryTags')  # already an array
-    # already an array, or maybe 'audienceTags'
-    json_dict['tags_recipients'] = json_dict.pop('populationsServed')
-    # description is named the same
-    json_dict['description'] = json_dict['description'].strip()
-    json_dict['contact_details'] = {
-        'name': json_dict['coordinatorName'], 'email': json_dict['coordinatorEmail']}
-    json_dict['schedules_display'] = {
-        'SERVICE_SCHEDULE': {
-            'title': 'Service',
-            'schedules': [{
-                'datetime': [sdt.strftime("%a, %d %B %Y %I:%M%p"), "To", edt.strftime("%a, %d %B %Y %I:%M%p")],
-                'address': json_dict['locations'][0]
-            }]
-        }
+    json_dict['vmpJobId'] = json_dict.pop('occurrenceId')
+    json_dict['organiserId'] = json_dict.pop('sponsoringOrganizationID')
+
+    json_dict['visibility'] = 'public'
+    json_dict['isFull'] = (json_dict['maximumAttendance'] - json_dict['volunteersNeeded']) <= 0
+    json_dict['publishedAt'] = json_dict.pop('occurrenceId')
+
+    json_dict['name'] = {'en': json_dict.pop('title')}
+    json_dict['description'] = {'en': json_dict['description'].strip()}
+    #json_dict['appImage'] = 
+    #json_dict['webImage'] = 
+    json_dict['url'] = json_dict.pop('detailUrl')
+
+    json_dict['applicationStart'] = json_dict.pop('ocCreatedDate')
+    json_dict['applicationEnd'] = (edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    json_dict['serviceStart'] = json_dict.pop('startDateTime')
+    json_dict['serviceEnd'] = json_dict.pop('endDateTime')
+    json_dict['schedules'] = ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict['locationAddress']])
+    json_dict['quota'] = json_dict.pop('maximumAttendance')
+
+    #json_dict['locations'] = no good mapping
+    json_dict['causes'] = mapCauses(json_dict['categoryTags'])
+    json_dict['recipients'] = mapRecipients(json_dict['populationsServed'])
+
+    json_dict['additionalInfo'] = {
+        'locationLatitude': json_dict.pop('Nlatitude'),
+        'locationLongitude': json_dict.pop('Nlongitude')
     }
-    json_dict['ngo'] = {
-        'name': json_dict['sponsoringOrganizationName'],
-        'ngo_website': json_dict['sponsoringOrganizationUrl']
-    }
-    json_dict['application_uri'] = json_dict.pop('detailUrl')
-    json_dict['total_quota'] = json_dict.pop('maximumAttendance')
-    json_dict['available_quota'] = json_dict.pop('volunteersNeeded')
-    if 'skills' in json_dict:
-        json_dict['required_skills'] = json_dict.pop('skills')
-    if 'Nlatitude' in json_dict and 'Nlongitude' in json_dict:
-        json_dict['lat_long'] = {
-            'lat': json_dict['Nlatitude'], 'long': json_dict['Nlongitude']}
-    json_dict['media_uri'] = json_dict.pop('voThumbnailUrl')
+
     return json_dict
+
+#key is hohk side (categorytags), value (causes) is JC side
+causes_mapping = {
+    'Animal Welfare': 'ANIMAL_WELFARE',
+    'Arts & Culture': 'ARTS_CULTURE',
+    'Civic & Community': 'COMMUNITY_DEVELOPMENT',
+    'Maintenance and renovation': 'COMMUNITY_DEVELOPMENT',
+    'Disaster and emergency': 'CRISIS_SUPPORT',
+    'Diversity and inclusion': 'DIVERSITY_INCLUSION',
+    'Training and Empowerment': 'EDUCATION',
+    'Education': 'EDUCATION',
+    'Environmental Conservation': 'ENVIRONMENT',
+    'Health and well-being': 'HEALTH_SPORTS',
+    'Food Assistance': 'POVERTY',
+    'Awareness and sharing information': 'OTHERS',
+    'Support and assistance': 'OTHERS'
+}
+def mapCauses(json_list):
+    new_list = []
+    for cause in json_list:
+        if cause not in causes_mapping:
+            logging.info(f"{cause} has no mapping")
+        else:
+            new_list.append(causes_mapping[cause])
+    return new_list
+
+#key is hohk side (populationsServed), value (recipients) is JC side
+recipients_mapping = {
+    'Animals': 'ANIMAL',
+    'Children and youth': 'CHILDREN_YOUTH',
+    'Disadvantaged women': 'WOMEN',
+    'Domestic & migrant workers': 'FOREIGN_WORKERS',
+    'Elderly': 'ELDERLY',
+    'Environment': 'ENVIRONMENT',
+    'Ethnic minorities': 'ETHNIC_MINORITY',
+    'Families': 'FAMILIES',
+    'LGBTQ': 'LGBT',
+    'Low income households': 'LOW_INCOME',
+    'People experiencing homelessness': 'LOW_INCOME',
+    'People with health conditions': 'PATIENTS',
+    'People with mental health conditions': 'MENTAL_HEALTH',
+    'People with physical disabilities': 'DISABLED',
+    'People with special educational needs': 'CHILDREN_YOUTH',
+    'Refugees and asylum seekers': 'REFUGEES_ASYLUM'
+}
+def mapRecipients(json_list):
+    new_list = []
+    for recipient in json_list:
+        if recipient not in recipients_mapping:
+            logging.info(f"{recipient} has no mapping")
+        else:
+            new_list.append(recipients_mapping[recipient])
+    return new_list

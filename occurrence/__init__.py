@@ -31,7 +31,7 @@ hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
 hohk_api_password = os.environ['HOHK_API_PASSWORD']
 
-
+#returns a json for a single occurrence in JC format
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python occurrence function processed a request.')
 
@@ -52,9 +52,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     source_job_id = 0
     status = ""
-    in_vms = False  # in_db means in VMS
+    in_vms = False  # in VMS means in DB
     row = cursor.execute(
-        f"SELECT status, sourceJobId FROM occurrences WHERE occurrenceId='{occurrenceId}'").fetchall()
+        f"SELECT status FROM occurrences WHERE occurrenceId='{occurrenceId}'").fetchall()
     if row:
         in_vms = True
         status = row[0][0]
@@ -161,7 +161,7 @@ def getDeletedObject(source_job_id):
     return return_obj
 
 
-def getObject(source_job_id, status, json_list):
+def getObject(status, json_list):
     # Map the fields to VMS format
     # print(status)
     # print(json_list)
@@ -173,12 +173,12 @@ def getObject(source_job_id, status, json_list):
     for json_dict in json_list:
         if json_dict['Language'] == 'English':
             have_en = True
-            en_dict = mapJSONData(json_dict, source_job_id)
+            en_dict = mapJSONData(json_dict)
 
         elif json_dict['Language'] == 'Chinese':
             # build simplified and traditional
             have_hk = True
-            zh_HK_dict = mapJSONData(json_dict, source_job_id)
+            zh_HK_dict = mapJSONData(json_dict)
 
     if have_en and not have_hk:
         # copy en in simpl and trad

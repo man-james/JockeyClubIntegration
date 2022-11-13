@@ -27,10 +27,7 @@ hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
 hohk_api_password = os.environ['HOHK_API_PASSWORD']
 
-occurrence_url_prefix = os.environ['THIS_API_URL'] + '/occurrence?occurrenceId='
-
-#https://jockeyclubintegration.azurewebsites.net/api/jobmap
-#http://localhost:7071/api/jobmap
+#Creates a list of valid occurrences as of today
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python Jobmap function processed a request.')
     unixtime = int(time.time()*1000) 
@@ -43,7 +40,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     #Add criteria 2: Add occurences: now <= (occurence start date) <= 2 months from now 
     query += f"%20AND%20endDateTime:[NOW%20TO%20NOW%2B2MONTHS]&NOW={unixtime}"
     
-    
     r = requests.get(hohk_api_url + query, auth=(hohk_api_username, hohk_api_password))
     to_add = r.text.split()
     to_add.remove('occurrenceId') #even if list is empty we will still get the header
@@ -54,8 +50,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     flattened_rows = [item[0] for item in rows]
 
     all_occurrences = mergeNoDuplicates(to_add, flattened_rows)
-    all_occurrences = [occurrence_url_prefix + occurrenceId for occurrenceId in all_occurrences]
-    return func.HttpResponse("\n".join(all_occurrences))
+    return func.HttpResponse(
+        json.dumps(all_occurrences), 
+        mimetype="application/json",
+        status_code=200
+    )
 
 def mergeNoDuplicates(iterable_1, iterable_2):
     myset = set(iterable_1).union(set(iterable_2))

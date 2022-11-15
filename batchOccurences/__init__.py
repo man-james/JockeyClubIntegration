@@ -39,19 +39,30 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     r = requests.get(jobmap_url)
     json_response = r.json()
     batch_size = 100
-    batches = [[] for i in range(math.ceil(len(json_response)/batch_size))] #an array where each value has another list with up to 100 elements
+    batches = [[]] #an array where each value has another list with up to 100 elements
     batch_index = 0
+    record_count = 0
     
     for i, occurrenceId in enumerate(json_response):
         r2 = requests.get(occurrence_url_prefix + occurrenceId)
-        batches[batch_index].append(r2)
+        if r2.status_code == 200:
+            dict = r2.json()
+            if len(dict) == 0:
+                logging.info("Occurrence: " + occurrenceId + " resulted in an empty response")
+            else:
+                record_count += 1
+                batches[batch_index].append(r2.json())
+        else: #other error codes
+            logging.error("Occurrence: " + occurrenceId + " gave response code: " + str(r2.status_code))
+            logging.error(occurrence_url_prefix + occurrenceId)
 
         if i != 0 and i % batch_size == 0:
             batch_index += 1
+            batches[batch_index] = []
 
-    logging.info(batches)
+    #logging.info(batches)
 
     return func.HttpResponse(
-        "Test SUCCESS",
+        "Sent " + record_count + " record(s) in " + len(batches) + " batches",
         status_code=200
     )

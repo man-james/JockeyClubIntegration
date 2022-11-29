@@ -3,10 +3,10 @@ import logging
 import azure.functions as func
 import os
 import requests
-from datetime import date, datetime, timedelta
+import base64
+from datetime import datetime, timedelta
 import json
 import time
-import pytz
 import pyodbc
 
 db_url = os.environ['DB_URL']
@@ -30,7 +30,7 @@ cursor = cnxn.cursor()
 hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
 hohk_api_password = os.environ['HOHK_API_PASSWORD']
-
+select_query = "fl=occurrenceId,sponsoringOrganizationID,maximumAttendance,volunteersNeeded,voThumbnailUrl,voCreatedDate,title,description,detailUrl,ocCreatedDate,startDateTime,endDateTime,locationAddress,categoryTags,populationsServed,Nlatitude,Nlongitude"
 #returns a json for a single occurrence in JC format
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python occurrence function processed a request.')
@@ -43,84 +43,91 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     #Get the individual occurrence data from solr
-    query = f"?*:*&rows=200&wt=json&q=occurrenceId:{occurrenceId}"
+    query = f"?*:*&rows=200&wt=json&q=occurrenceId:{occurrenceId}&{select_query}"
     r = requests.get(hohk_api_url + query, auth=(hohk_api_username, hohk_api_password))
     json_response = r.json()
     in_solr = False
     if(json_response['response']['numFound'] != 0):
         in_solr = True
 
-    status = ""
-    in_vms = False  # in VMS means in DB
-    row = cursor.execute(
-        f"SELECT status FROM occurrences WHERE occurrenceId='{occurrenceId}'").fetchall()
-    if row:
-        in_vms = True
-        status = row[0][0]
+    status = "NEW"
+    #in_vms = False  # in VMS means in DB
+    #row = cursor.execute(
+    #    f"SELECT status FROM occurrences WHERE occurrenceId='{occurrenceId}'").fetchall()
+    #if row:
+    #    in_vms = True
+    #    status = row[0][0]
+    
+    return func.HttpResponse(
+        json.dumps(getObject(status, json_response['response']['docs'])),
+        mimetype="application/json",
+    )
 
-    if not in_vms and not in_solr:
+
+
+    #if not in_vms and not in_solr:
         #logging.info("Invalid occurrenceId 404")
-        return func.HttpResponse(
-            "occurrenceId was not found",
-            status_code=400
-        )
+    #    return func.HttpResponse(
+    #        "occurrenceId was not found",
+    #        status_code=400
+    #    )
 
-    elif in_vms and not in_solr:
+    #elif in_vms and not in_solr:
         # it must have been deleted in salesforce
         #cursor.execute("DELETE FROM occurrences where occurrenceId='?'", occurrenceId)
-        if status != 'URL_DELETED':
-            cursor.execute(
-                f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
-            cnxn.commit()
-            logging.info(f"Removed from HOHK, mark {occurrenceId} as deleted")
-        else:
-            logging.info(f"{occurrenceId} is already deleted")
+    #    if status != 'URL_DELETED':
+    #        cursor.execute(
+    #            f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
+    #        cnxn.commit()
+    #        logging.info(f"Removed from HOHK, mark {occurrenceId} as deleted")
+    #    else:
+    #        logging.info(f"{occurrenceId} is already deleted")
 
-        return func.HttpResponse(
-            json.dumps(getDeletedObject()),
-            mimetype="application/json",
-        )
+    #    return func.HttpResponse(
+    #        json.dumps(getDeletedObject()),
+    #        mimetype="application/json",
+    #    )
 
-    elif in_vms and in_solr:
+    #elif in_vms and in_solr:
         # Was it deleted?  do nothing (WE NEVER READ SOMETHING THAT WAS DELETED)
-        if status == 'URL_DELETED':
-            return func.HttpResponse(
-                json.dumps(getDeletedObject()),
-                mimetype="application/json",
-            )
+    #    if status == 'URL_DELETED':
+    #        return func.HttpResponse(
+    #            json.dumps(getDeletedObject()),
+    #            mimetype="application/json",
+    #        )
 
         # Should we delete it?
         # Remove from VMS 48 hours before the event start time for Occurrences on Mondays to Saturdays
         # Remove from VMS 72 hours before the event start time for Occurrences that run on Sundays
         # Mark as deleted in DB and return
-        expiry_datetime = json_response['response']['docs'][0]['opportunityExpires']
+    #    expiry_datetime = json_response['response']['docs'][0]['opportunityExpires']
         # print(expiry_datetime)
-        if datetime.strptime(expiry_datetime, '%Y-%m-%dT%H:%M:%S%z') < pytz.utc.localize(datetime.now()):
-            cursor.execute(
-                f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
-            cnxn.commit()
-            return func.HttpResponse(
-                json.dumps(getDeletedObject()),
-                mimetype="application/json",
-            )
+    #    if datetime.strptime(expiry_datetime, '%Y-%m-%dT%H:%M:%S%z') < pytz.utc.localize(datetime.now()):
+    #        cursor.execute(
+    #            f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
+    #        cnxn.commit()
+    #        return func.HttpResponse(
+    #            json.dumps(getDeletedObject()),
+    #            mimetype="application/json",
+    #        )
 
         # No need to delete it. Update it
         # No need to set the DB status
-        return func.HttpResponse(
-            json.dumps(getObject("URL_UPDATED", json_response['response']['docs'])),
-            mimetype="application/json",
-        )
+    #    return func.HttpResponse(
+    #        json.dumps(getObject("URL_UPDATED", json_response['response']['docs'])),
+    #        mimetype="application/json",
+    #    )
 
-    else:  # not in VMS but in solr
+    #else:  # not in VMS but in solr
         # URL_ADDED first time
-        cursor.execute(f"INSERT INTO occurrences(occurrenceId, createdAt, status) VALUES (?, ?, ?)",
-                       occurrenceId, time.strftime('%Y-%m-%d %H:%M:%S'), "URL_ADDED")
-        cnxn.commit()
+    #    cursor.execute(f"INSERT INTO occurrences(occurrenceId, createdAt, status) VALUES (?, ?, ?)",
+    #                   occurrenceId, time.strftime('%Y-%m-%d %H:%M:%S'), "URL_ADDED")
+    #    cnxn.commit()
 
-        return func.HttpResponse(
-            json.dumps(getObject("URL_ADDED", json_response['response']['docs'])),
-            mimetype="application/json",
-        )
+    #    return func.HttpResponse(
+    #        json.dumps(getObject("URL_ADDED", json_response['response']['docs'])),
+    #        mimetype="application/json",
+    #    )
 
 
 def getDeletedObject():
@@ -139,7 +146,7 @@ def getObject(status, json_list):
         "type": status,
         "data": dict
     }
-    return return_obj
+    return dict #return_obj
 
 
 def mapJSONData(json_dict):
@@ -155,23 +162,31 @@ def mapJSONData(json_dict):
 
     json_dict['name'] = {'en': json_dict.pop('title')}
     json_dict['description'] = {'en': json_dict['description'].strip()}
-    #json_dict['appImage'] = 
-    #json_dict['webImage'] = 
+
+    b64 = ""
+    try: 
+        b64 = getBase64String(json_dict.pop('voThumbnailUrl')) #these are always square? 350x350
+    except:
+        b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
+        #This is Other
+
+    json_dict['appImage'] = b64 #Base64 image string 4:3
+    json_dict['webImage'] = b64 #supposed to be 16:9
     json_dict['url'] = json_dict.pop('detailUrl')
 
     json_dict['applicationStart'] = json_dict.pop('ocCreatedDate')
     json_dict['applicationEnd'] = (edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%SZ')
     json_dict['serviceStart'] = json_dict.pop('startDateTime')
     json_dict['serviceEnd'] = json_dict.pop('endDateTime')
-    json_dict['schedules'] = ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict['locationAddress']])
+    json_dict['schedules'] = {'en': ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict['locationAddress']])}
     json_dict['quota'] = json_dict.pop('maximumAttendance')
 
     #json_dict['locations'] = no good mapping
     if "categoryTags" in json_dict:
-        json_dict['causes'] = mapCauses(json_dict['categoryTags'])
+        json_dict['causes'] = mapCauses(json_dict.pop('categoryTags'))
 
     if "populationsServed" in json_dict:
-        json_dict['recipients'] = mapRecipients(json_dict['populationsServed'])
+        json_dict['recipients'] = mapRecipients(json_dict.pop('populationsServed'))
 
     if "Nlatitude" in json_dict and "Nlongitude" in json_dict:
         json_dict['additionalInfo'] = {
@@ -233,3 +248,7 @@ def mapRecipients(json_list):
         else:
             new_list.append(recipients_mapping[recipient])
     return new_list
+
+def getBase64String(url):
+    return base64.b64encode(requests.get(url).content).decode('utf-8')
+

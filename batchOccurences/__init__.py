@@ -34,7 +34,7 @@ occurrence_url_prefix = os.environ['THIS_API_URL'] + '/occurrence?code=' + os.en
 jobmap_url = os.environ['THIS_API_URL'] + '/jobmap?code=' + os.environ['JOBMAP_FUNCTION_CODE']
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Call jobmap function.')
+    logging.info('Call batchOccurences function.')
 
     r = requests.get(jobmap_url)
     json_response = r.json()
@@ -58,11 +58,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         if i != 0 and i % batch_size == 0:
             batch_index += 1
-            batches[batch_index] = []
+            batches.append([])
 
     #logging.info(batches)
 
     return func.HttpResponse(
-        "Sent " + record_count + " record(s) in " + len(batches) + " batches",
+        "Sent " + str(record_count) + " record(s) in " + str(len(batches)) + " batches",
         status_code=200
     )

@@ -41,8 +41,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     r = requests.get(jobmap_url)
     json_response = r.json()
-    #json_response = ['a0CBV000000NiT32AK','a0CBV000000OP132AG','a0CBV000000OP1B2AW','a0CBV000000OP182AG','a0CBV000000OP1A2AW','a0CBV000000OP1C2AW','a0CBV000000OP142AG','a0CBV000000OP192AG','a0CBV000000OP152AG','a0CBV000000OP2T2AW','a0CBV000000OP2Y2AW','a0CBV000000OP2a2AG','a0CBV000000OP2b2AG','a0CBV000000OP2n2AG','a0CBV000000OP2q2AG','a0CBV000000OP2V2AW','a0CBV000000OP2p2AG','a0CBV000000OP2c2AG','a0CBV000000OP2Z2AW','a0CBV000000OP5x2AG','a0CBV000000OP5z2AG','a0CBV000000OP5y2AG','a0CBV000000OP6H2AW']
     batch_size = 100
+    jc_batch_size = 10
     total_record_count = 0
     batches_sent = 0
     
@@ -59,16 +59,25 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     total_record_count = len(l)
     logging.info(f"Received {total_record_count} results to send")
-    for batch in batched(l, batch_size):
+
+    accessToken = getAccessToken()
+    if accessToken is None:
+        return func.HttpResponse(
+            "Could not obtain accessToken",
+            status_code=200
+        )
+
+    for batch in batched(l, jc_batch_size):
         #send batch
+        upsertVOs(accessToken, batch)
         batches_sent += 1
         #need to get ones that are errored, or just ignore them until next day
 
     end_time = time.time()
-
+    
     return func.HttpResponse(
         "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
-        status_code=200
+        status_code=400
     )
 
 def batched(iterable, n):
@@ -79,3 +88,34 @@ def batched(iterable, n):
     it = iter(iterable)
     while (batch := list(islice(it, n))):
         yield batch
+
+jc_api_url = os.environ['JC_API_URL']
+jc_api_username = os.environ['JC_API_USERNAME']
+jc_api_login_path = os.environ['JC_API_LOGIN_PATH']
+def getAccessToken():
+    retries = 1
+    while retries < 3:
+        r = requests.post(f"http://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
+        if r.status_code == 200:
+            return r.json().get('accessToken')
+        else:
+            wait = retries * 3 
+            time.sleep(wait)
+            retries += 1
+    
+    return None
+
+jc_api_upsert_path = os.environ['JC_API_UPSERT_PATH']
+def upsertVOs(accessToken, list):
+    retries = 1
+    head = {'Authorization': 'Bearer ' + accessToken}
+    while retries < 3:
+        r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
+        if r.status_code == 200:
+            logging.info(r.json())
+        else:
+            wait = retries * 3 
+            time.sleep(wait)
+            retries += 1
+    
+    logging.info("Failed to upsert")

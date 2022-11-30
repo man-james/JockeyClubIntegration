@@ -6,12 +6,13 @@ import requests
 import base64
 from datetime import datetime, timedelta
 import json
-import time
 
 hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
 hohk_api_password = os.environ['HOHK_API_PASSWORD']
 select_query = "fl=occurrenceId,sponsoringOrganizationID,maximumAttendance,volunteersNeeded,voThumbnailUrl,voCreatedDate,title,description,detailUrl,ocCreatedDate,startDateTime,endDateTime,locationAddress,categoryTags,populationsServed,Nlatitude,Nlongitude,Language"
+default_image_url = os.environ['DEFAULT_IMAGE_URL']
+
 #returns a json for a single occurrence in JC format
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python occurrence function processed a request.')
@@ -111,7 +112,7 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     try: 
        b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
     except:
-       b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
+       b64 = getBase64String(default_image_url)
 
     json_dict['appImage'] = b64 #Base64 image string 4:3
     json_dict['webImage'] = b64 #supposed to be 16:9

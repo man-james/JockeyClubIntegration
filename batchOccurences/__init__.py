@@ -111,6 +111,7 @@ def upsertVOs(accessToken, list):
         r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
         if r.status_code == 200:
             logging.info(r.json())
+            return
         else:
             wait = retries * 3 
             time.sleep(wait)

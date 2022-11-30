@@ -108,11 +108,10 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     json_dict['description'] = description
 
     b64 = ""
-    #try: 
-    #    b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
-    #except:
-    #    b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
-        #This is Other
+    try: 
+       b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
+    except:
+       b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
 
     json_dict['appImage'] = b64 #Base64 image string 4:3
     json_dict['webImage'] = b64 #supposed to be 16:9
@@ -205,6 +204,12 @@ def mapRecipients(json_list):
             new_list.append(recipients_mapping[recipient])
     return new_list
 
+base64_image_cache = {}
 def getBase64String(url):
-    return base64.b64encode(requests.get(url).content).decode('utf-8')
+    if url in base64_image_cache:
+        return base64_image_cache[url]
+    
+    b64 = base64.b64encode(requests.get(url).content).decode('utf-8')
+    base64_image_cache[url] = b64
+    return b64
 

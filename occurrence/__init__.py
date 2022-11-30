@@ -37,7 +37,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     full_list = json_response['response']['docs']
     for id in occurrenceId.split(','):
         matches = [d for d in full_list if d.get('occurrenceId') == id]
-        full_list[:] = [d for d in full_list if d.get('occurrenceId') != id]    
 
         #logging.info(f"Found {len(matches)} matches for occurrence {id}")
         if len(matches) > 0:

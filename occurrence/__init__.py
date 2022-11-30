@@ -59,6 +59,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         if len(matches) > 0:
             d2 = getObject(matches)
             return_occurrences.append(d2)
+        else:
+            logging.info(f"No matches found for occurrence {id}")
 
     return func.HttpResponse(
         json.dumps(return_occurrences),
@@ -176,7 +178,9 @@ causes_mapping = {
     'Health and well-being': 'HEALTH_SPORTS',
     'Food Assistance': 'POVERTY',
     'Awareness and sharing information': 'OTHERS',
-    'Support and assistance': 'OTHERS'
+    'Support and assistance': 'OTHERS',
+    'Waste Reduction': 'ENVIRONMENT',
+    'Health & Wellness': 'HEALTH_SPORTS'
 }
 def mapCauses(json_list):
     new_list = []
@@ -204,7 +208,9 @@ recipients_mapping = {
     'People with mental health conditions': 'MENTAL_HEALTH',
     'People with physical disabilities': 'DISABLED',
     'People with special educational needs': 'CHILDREN_YOUTH',
-    'Refugees and asylum seekers': 'REFUGEES_ASYLUM'
+    'Refugees and asylum seekers': 'REFUGEES_ASYLUM',
+    'Adults': 'GENERAL_PUBLIC',
+    'Environmental education': 'ENVIRONMENT'
 }
 def mapRecipients(json_list):
     new_list = []

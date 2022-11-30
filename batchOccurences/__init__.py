@@ -7,6 +7,7 @@ from datetime import date
 import json
 import time
 import math
+from itertools import zip_longest
 
 db_url = os.environ['DB_URL']
 db = os.environ['DB']
@@ -45,28 +46,43 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     total_record_count = 0
     batches_sent = 0
     
-    for i, occurrenceId in enumerate(json_response):
-        r2 = requests.get(occurrence_url_prefix + occurrenceId)
+    if req.params.get('batch') == 1:
+        occurrenceIds = ','.join(json_response)
+        r2 = requests.get(occurrence_url_prefix + occurrenceIds)
         if r2.status_code == 200:
-            dict = r2.json()
-            if len(dict) == 0:
-                logging.info("Occurrence: " + occurrenceId + " resulted in an empty response")
-            else:
-                total_record_count += 1
-                batch.append(r2.json())
-        else: #other error codes
-            logging.error("Occurrence: " + occurrenceId + " gave response code: " + str(r2.status_code))
-            logging.error(occurrence_url_prefix + occurrenceId)
+            l = r2.json()
+            total_record_count = len(l)
+            logging.info(f"Received {total_record_count} results to send")
 
-        if len(batch) == batch_size:
-            #send batch
-            batch = []
+            for batch in grouper(l, batch_size):
+                #send batch
+                batches_sent += 1
+                #need to get ones that are errored, or just ignore them until next day
+        else:
+            logging.error(occurrence_url_prefix + occurrenceIds)
+    else:
+        for i, occurrenceId in enumerate(json_response):
+            r2 = requests.get(occurrence_url_prefix + occurrenceId)
+            if r2.status_code == 200:
+                dict = r2.json()
+                if len(dict) == 0:
+                    logging.info("Occurrence: " + occurrenceId + " resulted in an empty response")
+                else:
+                    total_record_count += 1
+                    batch.append(r2.json())
+            else: #other error codes
+                logging.error("Occurrence: " + occurrenceId + " gave response code: " + str(r2.status_code))
+                logging.error(occurrence_url_prefix + occurrenceId)
+
+            if len(batch) == batch_size:
+                #send batch
+                batch = []
+                batches_sent += 1
+
+        #send last batch if not empty
+        if len(batch) > 0:
             batches_sent += 1
-
-    #send last batch if not empty
-    if len(batch) > 0:
-        batches_sent += 1
-        #send batch
+            #send batch
 
     end_time = time.time()
 
@@ -74,3 +90,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
         status_code=200
     )
+
+def grouper(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)

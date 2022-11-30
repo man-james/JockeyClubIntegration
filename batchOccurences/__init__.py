@@ -4,9 +4,7 @@ import azure.functions as func
 import pyodbc
 import requests
 from datetime import date
-import json
 import time
-import math
 from itertools import islice
 
 db_url = os.environ['DB_URL']
@@ -64,7 +62,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if accessToken is None:
         return func.HttpResponse(
             "Could not obtain accessToken",
-            status_code=200
+            status_code=400
         )
 
     for batch in batched(l, jc_batch_size):
@@ -77,7 +75,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     return func.HttpResponse(
         "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
-        status_code=400
+        status_code=200
     )
 
 def batched(iterable, n):

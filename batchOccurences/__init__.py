@@ -36,12 +36,14 @@ jobmap_url = os.environ['THIS_API_URL'] + '/jobmap?code=' + os.environ['JOBMAP_F
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Call batchOccurences function.')
 
+    start_time = time.time()
+
     r = requests.get(jobmap_url)
     json_response = r.json()
     batch_size = 100
-    batches = [[]] #an array where each value has another list with up to 100 elements
-    batch_index = 0
-    record_count = 0
+    batch = []
+    total_record_count = 0
+    batches_sent = 0
     
     for i, occurrenceId in enumerate(json_response):
         r2 = requests.get(occurrence_url_prefix + occurrenceId)
@@ -50,19 +52,25 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             if len(dict) == 0:
                 logging.info("Occurrence: " + occurrenceId + " resulted in an empty response")
             else:
-                record_count += 1
-                batches[batch_index].append(r2.json())
+                total_record_count += 1
+                batch.append(r2.json())
         else: #other error codes
             logging.error("Occurrence: " + occurrenceId + " gave response code: " + str(r2.status_code))
             logging.error(occurrence_url_prefix + occurrenceId)
 
-        if i != 0 and i % batch_size == 0:
-            batch_index += 1
-            batches.append([])
+        if len(batch) == batch_size:
+            #send batch
+            batch = []
+            batches_sent += 1
 
-    #logging.info(batches)
+    #send last batch if not empty
+    if len(batch) > 0:
+        batches_sent += 1
+        #send batch
+
+    end_time = time.time()
 
     return func.HttpResponse(
-        "Sent " + str(record_count) + " record(s) in " + str(len(batches)) + " batches",
+        "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
         status_code=200
     )

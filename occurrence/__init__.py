@@ -9,189 +9,155 @@ import json
 import time
 import pyodbc
 
-db_url = os.environ['DB_URL']
-db = os.environ['DB']
-db_username = os.environ['DB_USERNAME']
-db_password = os.environ['DB_PASSWORD']
-db_driver = os.environ['DB_DRIVER']
-cnxn = None
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect('DRIVER='+db_driver+';SERVER='+db_url+';PORT=1433;DATABASE='+db+';UID=' +
-                                  db_username+';PWD='+db_password+';Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
+#db_url = os.environ['DB_URL']
+#db = os.environ['DB']
+#db_username = os.environ['DB_USERNAME']
+#db_password = os.environ['DB_PASSWORD']
+#db_driver = os.environ['DB_DRIVER']
+#cnxn = None
+#for i in range(0, 4):
+#    while True:
+#        try:
+#            cnxn = pyodbc.connect('DRIVER='+db_driver+';SERVER='+db_url+';PORT=1433;DATABASE='+db+';UID=' +
+#                                  db_username+';PWD='+db_password+';Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+#        except pyodbc.Error as ex:
+#            time.sleep(2.0)
+#            continue
+#        break
 
-cursor = cnxn.cursor()
+#cursor = cnxn.cursor()
 
 hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
 hohk_api_password = os.environ['HOHK_API_PASSWORD']
-select_query = "fl=occurrenceId,sponsoringOrganizationID,maximumAttendance,volunteersNeeded,voThumbnailUrl,voCreatedDate,title,description,detailUrl,ocCreatedDate,startDateTime,endDateTime,locationAddress,categoryTags,populationsServed,Nlatitude,Nlongitude"
+select_query = "fl=occurrenceId,sponsoringOrganizationID,maximumAttendance,volunteersNeeded,voThumbnailUrl,voCreatedDate,title,description,detailUrl,ocCreatedDate,startDateTime,endDateTime,locationAddress,categoryTags,populationsServed,Nlatitude,Nlongitude,Language"
 #returns a json for a single occurrence in JC format
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python occurrence function processed a request.')
 
     occurrenceId = req.params.get('occurrenceId')
+    comma_count = occurrenceId.count(',') + 1
+    occurrenceIds = occurrenceId.replace(',', ' ')
     if not occurrenceId:
         return func.HttpResponse(
-            "Please pass an occurrenceId on the query string or in the request body",
+            "Please pass one of occurrenceId or comma separated occurrenceId on the query string or in the request body",
             status_code=400
         )
 
-    #Get the individual occurrence data from solr
-    query = f"?*:*&rows=200&wt=json&q=occurrenceId:{occurrenceId}&{select_query}"
+    #(occurenceId1 occurenceId2) the parenthesis allows for SQL IN style query
+    query = f"?*:*&rows=200&wt=json&q=occurrenceId:({occurrenceIds})&{select_query}"
     r = requests.get(hohk_api_url + query, auth=(hohk_api_username, hohk_api_password))
     json_response = r.json()
-    in_solr = False
-    if(json_response['response']['numFound'] != 0):
-        in_solr = True
 
-    status = "NEW"
-    #in_vms = False  # in VMS means in DB
-    #row = cursor.execute(
-    #    f"SELECT status FROM occurrences WHERE occurrenceId='{occurrenceId}'").fetchall()
-    #if row:
-    #    in_vms = True
-    #    status = row[0][0]
+    #logging.info(f"Found {json_response['response']['numFound']} results for {comma_count} occurrences.")
     
+    #need to actually loop based on query param and group based on matching occurrenceIds
+    return_occurrences = []
+    for id in occurrenceId.split(','):
+        matches = [d for d in json_response['response']['docs'] if d['occurrenceId'] == id]
+        #logging.info(f"Found {len(matches)} matches for occurrence {id}")
+        if len(matches) > 0:
+            d2 = getObject(matches)
+            return_occurrences.append(d2)
+
     return func.HttpResponse(
-        json.dumps(getObject(status, json_response['response']['docs'])),
+        json.dumps(return_occurrences),
         mimetype="application/json",
     )
 
-
-
-    #if not in_vms and not in_solr:
-        #logging.info("Invalid occurrenceId 404")
-    #    return func.HttpResponse(
-    #        "occurrenceId was not found",
-    #        status_code=400
-    #    )
-
-    #elif in_vms and not in_solr:
-        # it must have been deleted in salesforce
-        #cursor.execute("DELETE FROM occurrences where occurrenceId='?'", occurrenceId)
-    #    if status != 'URL_DELETED':
-    #        cursor.execute(
-    #            f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
-    #        cnxn.commit()
-    #        logging.info(f"Removed from HOHK, mark {occurrenceId} as deleted")
-    #    else:
-    #        logging.info(f"{occurrenceId} is already deleted")
-
-    #    return func.HttpResponse(
-    #        json.dumps(getDeletedObject()),
-    #        mimetype="application/json",
-    #    )
-
-    #elif in_vms and in_solr:
-        # Was it deleted?  do nothing (WE NEVER READ SOMETHING THAT WAS DELETED)
-    #    if status == 'URL_DELETED':
-    #        return func.HttpResponse(
-    #            json.dumps(getDeletedObject()),
-    #            mimetype="application/json",
-    #        )
-
-        # Should we delete it?
-        # Remove from VMS 48 hours before the event start time for Occurrences on Mondays to Saturdays
-        # Remove from VMS 72 hours before the event start time for Occurrences that run on Sundays
-        # Mark as deleted in DB and return
-    #    expiry_datetime = json_response['response']['docs'][0]['opportunityExpires']
-        # print(expiry_datetime)
-    #    if datetime.strptime(expiry_datetime, '%Y-%m-%dT%H:%M:%S%z') < pytz.utc.localize(datetime.now()):
-    #        cursor.execute(
-    #            f"UPDATE occurrences SET status='URL_DELETED', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
-    #        cnxn.commit()
-    #        return func.HttpResponse(
-    #            json.dumps(getDeletedObject()),
-    #            mimetype="application/json",
-    #        )
-
-        # No need to delete it. Update it
-        # No need to set the DB status
-    #    return func.HttpResponse(
-    #        json.dumps(getObject("URL_UPDATED", json_response['response']['docs'])),
-    #        mimetype="application/json",
-    #    )
-
-    #else:  # not in VMS but in solr
-        # URL_ADDED first time
-    #    cursor.execute(f"INSERT INTO occurrences(occurrenceId, createdAt, status) VALUES (?, ?, ?)",
-    #                   occurrenceId, time.strftime('%Y-%m-%d %H:%M:%S'), "URL_ADDED")
-    #    cnxn.commit()
-
-    #    return func.HttpResponse(
-    #        json.dumps(getObject("URL_ADDED", json_response['response']['docs'])),
-    #        mimetype="application/json",
-    #    )
-
-
-def getDeletedObject():
-    return {}
-
-
-def getObject(status, json_list):
+def getObject(json_list):
     # Map the fields to VMS format
-    # print(status)
-    # print(json_list)
-    dict = {}
-    #for json_dict in json_list:
-    dict = mapJSONData(json_list[0])
+    #logging.info(json_list[0].keys())
 
-    return_obj = {
-        "type": status,
-        "data": dict
-    }
-    return dict #return_obj
+    #what language is at index 0?
+    eng_dict = None
+    chi_dict = None
+    if json_list[0]['Language'] == 'English':
+        eng_dict = json_list[0]
+        if len(json_list) > 1:
+            chi_dict = json_list[1]
+    else:
+        chi_dict = json_list[0]
+        if len(json_list) > 1:
+            eng_dict = json_list[1]
 
+    dict = mapJSONData(eng_dict, chi_dict)
+    return dict
 
-def mapJSONData(json_dict):
-    sdt = datetime.strptime(json_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S%z')
-    edt = datetime.strptime(json_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S%z')
+#pass in None if that language doesn't exist
+def mapJSONData(json_dict_eng, json_dict_chi):
+    json_dict = {}
+    primary_dict = json_dict_eng
+    has_english = True if json_dict_eng is not None else False
+    has_chinese = True if json_dict_chi is not None else False
+    if has_english == False:
+        primary_dict = json_dict_chi
 
-    json_dict['vmpJobId'] = json_dict.pop('occurrenceId')
-    json_dict['organiserId'] = json_dict.pop('sponsoringOrganizationID')
+    sdt = datetime.strptime(primary_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S%z')
+    edt = datetime.strptime(primary_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S%z')
+
+    json_dict['vmpJobId'] = primary_dict['occurrenceId']
+    json_dict['organiserId'] = primary_dict['sponsoringOrganizationID']
 
     json_dict['visibility'] = 'public'
-    json_dict['isFull'] = (json_dict['maximumAttendance'] - json_dict['volunteersNeeded']) <= 0
-    json_dict['publishedAt'] = json_dict.pop('voCreatedDate')
+    json_dict['isFull'] = (primary_dict['maximumAttendance'] - primary_dict['volunteersNeeded']) <= 0
+    json_dict['publishedAt'] = primary_dict['voCreatedDate']
 
-    json_dict['name'] = {'en': json_dict.pop('title')}
-    json_dict['description'] = {'en': json_dict['description'].strip()}
+    name = {}
+    if has_english:
+        name['en'] = json_dict_eng['title']
+
+    if has_chinese:
+        name['zh'] = json_dict_chi['title']
+
+    json_dict['name'] = name
+
+    description = {}
+    if has_english:
+        description['en'] = json_dict_eng['description'].strip()
+
+    if has_chinese:
+        description['zh'] = json_dict_chi['description'].strip()
+
+    json_dict['description'] = description
 
     b64 = ""
     try: 
-        b64 = getBase64String(json_dict.pop('voThumbnailUrl')) #these are always square? 350x350
+        b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
     except:
         b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
         #This is Other
 
     json_dict['appImage'] = b64 #Base64 image string 4:3
     json_dict['webImage'] = b64 #supposed to be 16:9
-    json_dict['url'] = json_dict.pop('detailUrl')
+    json_dict['url'] = primary_dict['detailUrl']
 
-    json_dict['applicationStart'] = json_dict.pop('ocCreatedDate')
+    json_dict['applicationStart'] = primary_dict['ocCreatedDate']
     json_dict['applicationEnd'] = (edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%SZ')
-    json_dict['serviceStart'] = json_dict.pop('startDateTime')
-    json_dict['serviceEnd'] = json_dict.pop('endDateTime')
-    json_dict['schedules'] = {'en': ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict['locationAddress']])}
-    json_dict['quota'] = json_dict.pop('maximumAttendance')
+    json_dict['serviceStart'] = primary_dict['startDateTime']
+    json_dict['serviceEnd'] = primary_dict['endDateTime']
+
+    schedules = {}
+    if has_english:
+        schedules['en'] = ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict_eng['locationAddress']])
+
+    if has_chinese:
+        schedules['zh'] = ("\n").join(["義工服務", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict_chi['locationAddress']])
+
+    json_dict['schedules'] = schedules
+    json_dict['quota'] = primary_dict['maximumAttendance']
 
     #json_dict['locations'] = no good mapping
-    if "categoryTags" in json_dict:
-        json_dict['causes'] = mapCauses(json_dict.pop('categoryTags'))
+    if "categoryTags" in primary_dict:
+        json_dict['causes'] = mapCauses(primary_dict['categoryTags'])
 
-    if "populationsServed" in json_dict:
-        json_dict['recipients'] = mapRecipients(json_dict.pop('populationsServed'))
+    if "populationsServed" in primary_dict:
+        json_dict['recipients'] = mapRecipients(primary_dict['populationsServed'])
 
-    if "Nlatitude" in json_dict and "Nlongitude" in json_dict:
+    if "Nlatitude" in primary_dict and "Nlongitude" in primary_dict:
         json_dict['additionalInfo'] = {
-            'locationLatitude': json_dict.pop('Nlatitude'),
-            'locationLongitude': json_dict.pop('Nlongitude')
+            'locationLatitude': primary_dict['Nlatitude'],
+            'locationLongitude': primary_dict['Nlongitude']
         }
 
     return json_dict
@@ -216,7 +182,7 @@ def mapCauses(json_list):
     new_list = []
     for cause in json_list:
         if cause not in causes_mapping:
-            logging.info(f"{cause} has no mapping")
+            logging.info(f"Cause '{cause}' has no mapping")
         else:
             new_list.append(causes_mapping[cause])
     return new_list
@@ -244,7 +210,7 @@ def mapRecipients(json_list):
     new_list = []
     for recipient in json_list:
         if recipient not in recipients_mapping:
-            logging.info(f"{recipient} has no mapping")
+            logging.info(f"Recipient '{recipient}' has no mapping")
         else:
             new_list.append(recipients_mapping[recipient])
     return new_list

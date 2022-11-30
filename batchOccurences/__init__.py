@@ -43,52 +43,26 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     json_response = r.json()
     #json_response = ['a0CBV000000NiT32AK','a0CBV000000OP132AG','a0CBV000000OP1B2AW','a0CBV000000OP182AG','a0CBV000000OP1A2AW','a0CBV000000OP1C2AW','a0CBV000000OP142AG','a0CBV000000OP192AG','a0CBV000000OP152AG','a0CBV000000OP2T2AW','a0CBV000000OP2Y2AW','a0CBV000000OP2a2AG','a0CBV000000OP2b2AG','a0CBV000000OP2n2AG','a0CBV000000OP2q2AG','a0CBV000000OP2V2AW','a0CBV000000OP2p2AG','a0CBV000000OP2c2AG','a0CBV000000OP2Z2AW','a0CBV000000OP5x2AG','a0CBV000000OP5z2AG','a0CBV000000OP5y2AG','a0CBV000000OP6H2AW']
     batch_size = 100
-    batch = []
     total_record_count = 0
     batches_sent = 0
     
-    if req.params.get('batch'):
-        #sending it to SOLR with too many occurrenceIds (100+) seems to cause problems
-        l = []
-        for occurrence_batch in batched(json_response, batch_size):
-            occurrenceIds = ','.join(occurrence_batch)
-            r2 = requests.get(occurrence_url_prefix + occurrenceIds)
+    #sending it to SOLR with too many occurrenceIds (100+) seems to cause problems
+    l = []
+    for occurrence_batch in batched(json_response, batch_size):
+        occurrenceIds = ','.join(occurrence_batch)
+        r2 = requests.get(occurrence_url_prefix + occurrenceIds)
 
-            if r2.status_code == 200:
-                l.extend(r2.json())
-            else:
-                logging.error(f"Received status code {r2.status_code} for {occurrence_url_prefix + occurrenceIds}")
+        if r2.status_code == 200:
+            l.extend(r2.json())
+        else:
+            logging.error(f"Received status code {r2.status_code} for {occurrence_url_prefix + occurrenceIds}")
 
-        total_record_count = len(l)
-        logging.info(f"Received {total_record_count} results to send")
-        for batch in batched(l, batch_size):
-            #send batch
-            batches_sent += 1
-            #need to get ones that are errored, or just ignore them until next day
-
-    else:
-        for i, occurrenceId in enumerate(json_response):
-            r2 = requests.get(occurrence_url_prefix + occurrenceId)
-            if r2.status_code == 200:
-                dict = r2.json()
-                if len(dict) == 0:
-                    logging.info("Occurrence: " + occurrenceId + " resulted in an empty response")
-                else:
-                    total_record_count += 1
-                    batch.append(r2.json())
-            else: #other error codes
-                logging.error("Occurrence: " + occurrenceId + " gave response code: " + str(r2.status_code))
-                logging.error(occurrence_url_prefix + occurrenceId)
-
-            if len(batch) == batch_size:
-                #send batch
-                batch = []
-                batches_sent += 1
-
-        #send last batch if not empty
-        if len(batch) > 0:
-            batches_sent += 1
-            #send batch
+    total_record_count = len(l)
+    logging.info(f"Received {total_record_count} results to send")
+    for batch in batched(l, batch_size):
+        #send batch
+        batches_sent += 1
+        #need to get ones that are errored, or just ignore them until next day
 
     end_time = time.time()
 

@@ -7,25 +7,6 @@ import base64
 from datetime import datetime, timedelta
 import json
 import time
-import pyodbc
-
-#db_url = os.environ['DB_URL']
-#db = os.environ['DB']
-#db_username = os.environ['DB_USERNAME']
-#db_password = os.environ['DB_PASSWORD']
-#db_driver = os.environ['DB_DRIVER']
-#cnxn = None
-#for i in range(0, 4):
-#    while True:
-#        try:
-#            cnxn = pyodbc.connect('DRIVER='+db_driver+';SERVER='+db_url+';PORT=1433;DATABASE='+db+';UID=' +
-#                                  db_username+';PWD='+db_password+';Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-#        except pyodbc.Error as ex:
-#            time.sleep(2.0)
-#            continue
-#        break
-
-#cursor = cnxn.cursor()
 
 hohk_api_url = os.environ['HOHK_API_URL']
 hohk_api_username = os.environ['HOHK_API_USERNAME']
@@ -49,18 +30,22 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     r = requests.get(hohk_api_url + query, auth=(hohk_api_username, hohk_api_password))
     json_response = r.json()
 
-    #logging.info(f"Found {json_response['response']['numFound']} results for {comma_count} occurrences.")
+    logging.info(f"Found {json_response['response']['numFound']} results for {comma_count} occurrences.")
     
     #need to actually loop based on query param and group based on matching occurrenceIds
     return_occurrences = []
+    full_list = json_response['response']['docs']
     for id in occurrenceId.split(','):
-        matches = [d for d in json_response['response']['docs'] if d['occurrenceId'] == id]
+        matches = [d for d in full_list if d.get('occurrenceId') == id]
+        full_list[:] = [d for d in full_list if d.get('occurrenceId') != id]    
+
         #logging.info(f"Found {len(matches)} matches for occurrence {id}")
         if len(matches) > 0:
             d2 = getObject(matches)
             return_occurrences.append(d2)
         else:
             logging.info(f"No matches found for occurrence {id}")
+            
 
     return func.HttpResponse(
         json.dumps(return_occurrences),
@@ -124,10 +109,10 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     json_dict['description'] = description
 
     b64 = ""
-    try: 
-        b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
-    except:
-        b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
+    #try: 
+    #    b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
+    #except:
+    #    b64 = getBase64String("https://hocps.blob.core.windows.net/00006b/images/opp_icons/others.png")
         #This is Other
 
     json_dict['appImage'] = b64 #Base64 image string 4:3

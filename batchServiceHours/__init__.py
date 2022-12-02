@@ -2,7 +2,6 @@ import logging
 import os
 import pyodbc
 import time
-import datetime
 import requests
 from itertools import islice
 import azure.functions as func
@@ -63,7 +62,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 b = [i for i in b if not (i['varUserId'] == error['varUserId'] and i['vmpJobId'] == error['vmpJobId'])]
                 error_count += 1
             
-        logging.info(b)
+        #logging.info(b)
         for dict in b:
             cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' where occurrenceID='{dict.get('vmpJobId')}' AND userId='{dict.get('varUserId')}'")
             cnxn.commit()
@@ -105,7 +104,7 @@ def getAccessToken():
 
 jc_api_hours_path = os.environ['JC_API_HOURS_PATH']
 def sendHours(accessToken, list):
-    logging.info(list)
+    #logging.info(list)
     retries = 1
     head = {'Authorization': 'Bearer ' + accessToken}
     while retries < 3:

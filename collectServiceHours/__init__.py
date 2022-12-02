@@ -41,11 +41,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
         dict = xmltodict.parse(req.get_body())
         json_data = json.dumps(dict)
-        logging.info(json_data)
+        #logging.info(json_data)
 
-        cursor.execute(f"INSERT INTO serviceHours(occurrenceId, volunteerId, startDate, endDate, hours, status, xml, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            "abcd", "1234", time.strftime('%Y-%m-%d %H:%M:%S'), None, 2, "NOT_ADDED", json_data, time.strftime('%Y-%m-%d %H:%M:%S'), None)
-        cnxn.commit()
+        connection_data = json_data['soapenv:Envelope']['soapenv:Body']['notifications']['Notification']['sObject']
+
+        attendance_status = connection_data.get('sf:HOC__Attendance_Status__c')
+        if attendance_status == "Attended (and Hours Verified)":
+            userId = connection_data.get('sf:HOC_Contact_JCVAR_UserId__c') #varUserId
+            occurrenceId = connection_data.get('sf:HOC__Occurrence__c') #vmpJobId
+            sdt = connection_data.get('sf:HOC_Occurrence_Start_Date_Time__c') #startDateTime In ISO 8601 datetime format with UTC.
+            edt = connection_data.get('sf:HOC_Occurrence_End_Date_Time__c') #endDateTime
+            hours = float(connection_data.get('sf:HOC__Number_Hours_Served__c')) #hour
+
+            cursor.execute(f"INSERT INTO serviceHours(occurrenceId, volunteerId, startDate, endDate, hours, status, xml, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                occurrenceId, userId, sdt, edt, hours, "NOT_SENT", json_data, time.strftime('%Y-%m-%d %H:%M:%S'), None)
+            cnxn.commit()
 
         return func.HttpResponse(
             xml_res.replace("REPLACE", "true" ),

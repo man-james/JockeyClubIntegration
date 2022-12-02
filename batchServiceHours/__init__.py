@@ -2,6 +2,7 @@ import logging
 import os
 import pyodbc
 import time
+import datetime
 import requests
 from itertools import islice
 import azure.functions as func
@@ -36,7 +37,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     l = []
     rows = cursor.execute(f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours WHERE status='NOT_SENT'").fetchall()
     for row in rows:
-        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': row.startDate, 'endDateTime': row.endDate}
+        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': row.startDate.isoformat(), 'endDateTime': row.endDate.isoformat(), 'hour': float(row.hours)}
         l.append(dict)
     
     if len(l) == 0:
@@ -62,6 +63,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 b = [i for i in b if not (i['varUserId'] == error['varUserId'] and i['vmpJobId'] == error['vmpJobId'])]
                 error_count += 1
             
+        logging.info(b)
         for dict in b:
             cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' where occurrenceID='{dict.get('vmpJobId')}' AND userId='{dict.get('varUserId')}'")
             cnxn.commit()
@@ -103,6 +105,7 @@ def getAccessToken():
 
 jc_api_hours_path = os.environ['JC_API_HOURS_PATH']
 def sendHours(accessToken, list):
+    logging.info(list)
     retries = 1
     head = {'Authorization': 'Bearer ' + accessToken}
     while retries < 3:
@@ -111,8 +114,9 @@ def sendHours(accessToken, list):
             #logging.info(r.json())
             return r.json().get('error')
         else:
+            #logging.info(r.json())
             wait = retries * 3 
             time.sleep(wait)
             retries += 1
     
-    logging.info("Failed to upsert")
+    logging.info("Failed to send Hours")

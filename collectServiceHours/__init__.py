@@ -65,8 +65,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=200,
             headers={ "content-type": "application/xml" }
         )
-    except:
-        pass
+    except Exception as err:
+        logging.error(f"Unexpected {err=}, {type(err)=}")
     
     return func.HttpResponse(
         xml_res.replace("REPLACE", "false" ),

@@ -84,7 +84,7 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     edt = datetime.strptime(primary_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S%z')
 
     json_dict['vmpJobId'] = primary_dict['occurrenceId']
-    json_dict['organiserId'] = 2
+    json_dict['organiserId'] = '2'
     #json_dict['organiserId'] = primary_dict['sponsoringOrganizationID']
 
     json_dict['visibility'] = 'public'

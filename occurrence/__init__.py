@@ -80,8 +80,8 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     if has_english == False:
         primary_dict = json_dict_chi
 
-    sdt = datetime.strptime(primary_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S.%f%z')
-    edt = datetime.strptime(primary_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S.%f%z')
+    sdt = datetime.strptime(primary_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S%z')
+    edt = datetime.strptime(primary_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S%z')
 
     json_dict['vmpJobId'] = primary_dict['occurrenceId']
     json_dict['organiserId'] = '2'
@@ -89,7 +89,7 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     json_dict['visibility'] = 'public'
     json_dict['isFull'] = (primary_dict['maximumAttendance'] - primary_dict['volunteersNeeded']) <= 0
-    json_dict['publishedAt'] = datetime.strptime(primary_dict['voCreatedDate'], '%Y-%m-%dT%H:%M:%S.%f%z')
+    json_dict['publishedAt'] = primary_dict['voCreatedDate'].replace("Z", ".000Z")
 
     name = {}
     if has_english:
@@ -119,10 +119,10 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     json_dict['webImage'] = b64 #supposed to be 16:9
     json_dict['url'] = primary_dict['detailUrl']
 
-    json_dict['applicationStart'] = datetime.strptime(primary_dict['ocCreatedDate'], '%Y-%m-%dT%H:%M:%S.%f%z')
-    json_dict['applicationEnd'] = (edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%S.%f%z')
-    json_dict['serviceStart'] = datetime.strptime(primary_dict['startDateTime'], '%Y-%m-%dT%H:%M:%S.%f%z')
-    json_dict['serviceEnd'] = datetime.strptime(primary_dict['endDateTime'], '%Y-%m-%dT%H:%M:%S.%f%z')
+    json_dict['applicationStart'] = primary_dict['ocCreatedDate'].replace("Z", ".000Z")
+    json_dict['applicationEnd'] = (edt + timedelta(days=-1)).strftime('%Y-%m-%dT%H:%M:%SZ').replace("Z", ".000Z")
+    json_dict['serviceStart'] = primary_dict['startDateTime'].replace("Z", ".000Z")
+    json_dict['serviceEnd'] = primary_dict['endDateTime'].replace("Z", ".000Z")
 
     schedules = {}
     if has_english:

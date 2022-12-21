@@ -1,4 +1,4 @@
-/****** Object:  Table [dbo].[serviceHours]    Script Date: 11/11/2022 6:48:36 pm ******/
+/****** Object:  Table [dbo].[serviceHours]    Script Date: 21/12/2022 10:43:20 pm ******/
 SET ANSI_NULLS ON
 GO
 
@@ -14,7 +14,9 @@ CREATE TABLE [dbo].[serviceHours](
 	[status] [varchar](16) NOT NULL,
 	[xml] [nvarchar](max) NOT NULL,
 	[createdAt] [datetime] NOT NULL,
-	[updatedAt] [datetime] NULL
+	[updatedAt] [datetime] NULL,
+	[error] [varchar](128) NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
+
 

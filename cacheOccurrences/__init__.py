@@ -61,6 +61,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     not_in_db_ids = [id for id in json_response if id not in in_db_ids]
     in_db_json = [row.json for row in rows]
 
+    new_records = 0
+    updated_records = 0
+    same_records = 0
+
     for dict in l:
         occurrenceId = dict.get('vmpJobId')
         index = -1
@@ -74,18 +78,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             db_json_dict = json.loads(in_db_json[index])
             if db_json_dict == dict:
                 logging.info("Same JSON, do nothing")
+                same_records += 1
             else:
                 logging.info("Different JSON, set send=1")
                 cursor.execute(f"UPDATE occurrences SET send=1, json='{json.dumps(dict)}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
                 cnxn.commit()
+                updated_records += 1
         else:
             #if not in db, insert directly to db and set send bit to 1
             cursor.execute(f"INSERT INTO occurrences(occurrenceId, status, json, send, createdAt) VALUES (?, ?, ?, ?, ?)",
                 occurrenceId, "NOT SENT", json.dumps(dict), 1, time.strftime('%Y-%m-%d %H:%M:%S'))
             cnxn.commit()
+            new_records += 1
 
     return func.HttpResponse(
-        f"Done {len(json_response)} {len(not_in_db_ids)}",
+        f"Total in SOLR: {len(json_response)}, Not in DB: {len(not_in_db_ids)}, In DB: {len(in_db_ids)}, Inserted: {new_records}, Unchanged: {same_records}, Updated: {updated_records}",
         status_code=200
     )
 

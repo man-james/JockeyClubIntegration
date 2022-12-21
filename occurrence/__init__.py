@@ -109,14 +109,14 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     json_dict['description'] = description
 
-    b64 = ""
-    try: 
-       b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
-    except:
-       b64 = getBase64String(default_image_url)
+    #b64 = ""
+    #try: 
+    #   b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
+    #except:
+    #   b64 = getBase64String(default_image_url)
 
-    json_dict['appImage'] = b64 #Base64 image string 4:3
-    json_dict['webImage'] = b64 #supposed to be 16:9
+    json_dict['appImage'] = primary_dict['voThumbnailUrl']#b64 #Base64 image string 4:3
+    json_dict['webImage'] = primary_dict['voThumbnailUrl']#b64 #supposed to be 16:9
     json_dict['url'] = primary_dict['detailUrl']
 
     json_dict['applicationStart'] = primary_dict['ocCreatedDate'].replace("Z", ".000Z")
@@ -165,7 +165,8 @@ causes_mapping = {
     'Awareness and sharing information': 'OTHERS',
     'Support and assistance': 'OTHERS',
     'Waste Reduction': 'ENVIRONMENT',
-    'Health & Wellness': 'HEALTH_SPORTS'
+    'Health & Wellness': 'HEALTH_SPORTS',
+    'Hygiene': 'HEALTH_SPORTS'
 }
 def mapCauses(json_list):
     new_list = []

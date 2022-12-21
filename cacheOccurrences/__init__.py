@@ -6,6 +6,7 @@ import requests
 from datetime import date
 import time
 from itertools import islice
+import json
 
 import azure.functions as func
 
@@ -41,8 +42,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     json_response = r.json()
     batch_size = 100
 
-    #check to see which ones are in the DB and which aren't
-
     #sending it to SOLR with too many occurrenceIds (100+) seems to cause problems
     l = []
     for occurrence_batch in batched(json_response, batch_size):
@@ -53,7 +52,42 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             l.extend(r2.json())
         else:
             logging.error(f"Received status code {r2.status_code} for {occurrence_url_prefix + occurrenceIds}")
+    
+    #here, l contains everything that is a valid occurrence in SOLR
+    #search DB for json_response where occurrenceId in jobmap results
+    ids = (',').join(f"'{w}'" for w in json_response)
+    rows = cursor.execute(f"SELECT occurrenceId, json FROM occurrences WHERE occurrenceId IN ({ids})").fetchall()
+    in_db_ids = [row.occurrenceId for row in rows]
+    not_in_db_ids = [id for id in json_response if id not in in_db_ids]
+    in_db_json = [row.json for row in rows]
 
+    for dict in l:
+        occurrenceId = dict.get('vmpJobId')
+        index = -1
+        try:
+            index = in_db_ids.index(occurrenceId)
+        except:
+            pass
+
+        if index >= 0:
+            #if in db, is json the same?
+            db_json_dict = json.loads(in_db_json[index])
+            if db_json_dict == dict:
+                logging.info("Same JSON, do nothing")
+            else:
+                logging.info("Different JSON, set send=1")
+                cursor.execute(f"UPDATE occurrences SET send=1, json='{json.dumps(dict)}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
+                cnxn.commit()
+        else:
+            #if not in db, insert directly to db and set send bit to 1
+            cursor.execute(f"INSERT INTO occurrences(occurrenceId, status, json, send, createdAt) VALUES (?, ?, ?, ?, ?)",
+                occurrenceId, "NOT SENT", json.dumps(dict), 1, time.strftime('%Y-%m-%d %H:%M:%S'))
+            cnxn.commit()
+
+    return func.HttpResponse(
+        f"Done {len(json_response)} {len(not_in_db_ids)}",
+        status_code=200
+    )
 
 def batched(iterable, n):
     "Batch data into lists of length n. The last batch may be shorter."

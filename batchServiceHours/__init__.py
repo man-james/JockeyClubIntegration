@@ -54,19 +54,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     for batch in batched(l, jc_batch_size):
         #send batch
-        errors = sendHours(accessToken, batch)
-        b = batch.copy()
-        if errors: #can be an empty dict {}
-            for error in errors['data']:
+        sendHours(accessToken, batch)
+        #b = batch.copy()
+        #if errors: #can be an empty dict {}
+        #    for error in errors['data']:
                 #remove failures from b so that SQL isn't updated
-                b = [i for i in b if not (i['varUserId'] == error['varUserId'] and i['vmpJobId'] == error['vmpJobId'])]
-                error_count += 1
+        #        b = [i for i in b if not (i['varUserId'] == error['varUserId'] and i['vmpJobId'] == error['vmpJobId'])]
+        #        error_count += 1
             
         #logging.info(b)
-        for dict in b:
-            cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' where occurrenceID='{dict.get('vmpJobId')}' AND userId='{dict.get('varUserId')}'")
-            cnxn.commit()
-            total_record_count += 1
+        #for dict in b:
+        #    cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' where occurrenceId='{dict.get('vmpJobId')}' AND userId='{dict.get('varUserId')}'")
+        #    cnxn.commit()
+        #    total_record_count += 1
 
         batches_sent += 1
 
@@ -110,8 +110,27 @@ def sendHours(accessToken, list):
     while retries < 3:
         r = requests.post(f"http://{jc_api_url}/{jc_api_hours_path}", json=list, headers=head)
         if r.status_code == 200:
-            #logging.info(r.json())
-            return r.json().get('error')
+            dict = r.json()
+            logging.info(dict)
+            errors = dict.get('error')
+            successes = dict.get('success')
+
+            if successes.get('total') > 0:
+                for d in successes.get('ids'):
+                    varUserId = d.get('varUserId')
+                    vmpJobId = d.get('vmpJobId')
+                    cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND userId='{varUserId}'")
+                    cnxn.commit()
+
+            if errors.get('total') > 0:
+                for d in errors.get('data'):
+                    varUserId = d.get('varUserId')
+                    vmpJobId = d.get('vmpJobId')
+                    message = d.get('message')
+                    cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND userId='{varUserId}'")
+                    cnxn.commit()
+
+            return
         else:
             #logging.info(r.json())
             wait = retries * 3 

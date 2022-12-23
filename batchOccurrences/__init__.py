@@ -116,14 +116,14 @@ def upsertVOs(accessToken, list):
             if successes.get('total') > 0:
                 ids = successes.get('ids')
                 sql_ids = (',').join(f"'{w}'" for w in ids)
-                cursor.execute(f"UPDATE occurrences SET send=0, error='', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId IN ({sql_ids})")
+                cursor.execute(f"UPDATE occurrences SET send=0, status='SENT', error='', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId IN ({sql_ids})")
                 cnxn.commit()
 
             if errors.get('total') > 0:
                 for d in errors.get('data'):
                     id = d.get('id')
                     message = d.get('message')
-                    cursor.execute(f"UPDATE occurrences SET send=0, error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{id}'")
+                    cursor.execute(f"UPDATE occurrences SET send=0, status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{id}'")
                     cnxn.commit()
             return
         else:

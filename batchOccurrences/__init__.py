@@ -109,13 +109,14 @@ def upsertVOs(accessToken, list):
         r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
         if r.status_code == 200:
             dict = r.json()
+            logging.info(dict)
             errors = dict.get('error')
             successes = dict.get('success')
 
             if successes.get('total') > 0:
                 ids = successes.get('ids')
                 sql_ids = (',').join(f"'{w}'" for w in ids)
-                cursor.execute(f"UPDATE occurrences SET send=0, error='', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId IN ({sql_ids}))")
+                cursor.execute(f"UPDATE occurrences SET send=0, error='', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId IN ({sql_ids})")
                 cnxn.commit()
 
             if errors.get('total') > 0:

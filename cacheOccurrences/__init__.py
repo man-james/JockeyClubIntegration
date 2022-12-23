@@ -81,7 +81,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 same_records += 1
             else:
                 #logging.info("Different JSON, set send=1")
-                cursor.execute(f"UPDATE occurrences SET send=1, json='{json.dumps(dict)}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
+                cursor.execute(f"UPDATE occurrences SET send=1, error='', json='{json.dumps(dict)}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
                 cnxn.commit()
                 updated_records += 1
         else:

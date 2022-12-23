@@ -43,6 +43,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     logging.info(f"Received {total_record_count} results to send")
 
+    #need to add back the b64 images
     new_list = []
     for dict in list_of_json_dict:
         b64 = ""
@@ -108,11 +109,15 @@ def upsertVOs(accessToken, list):
     while retries < 3:
         r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
         if r.status_code == 200:
-            logging.info(r.json())
+            dict = r.json()
+            errors = dict.get('error')
 
-            #need to update DB set send=0, updatedAt time.strftime('%Y-%m-%d %H:%M:%S')
-
-
+            if errors.get('total') > 0:
+                for d in errors.get('data'):
+                    id = d.get('id')
+                    message = d.get('message')
+                    cursor.execute(f"UPDATE occurrences SET send=0, error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{id}'")
+                    cnxn.commit()
             return
         else:
             wait = retries * 3 

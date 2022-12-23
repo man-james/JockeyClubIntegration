@@ -3,7 +3,6 @@ import logging
 import azure.functions as func
 import os
 import requests
-import base64
 from datetime import datetime, timedelta
 import json
 
@@ -109,14 +108,8 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     json_dict['description'] = description
 
-    #b64 = ""
-    #try: 
-    #   b64 = getBase64String(primary_dict['voThumbnailUrl']) #these are always square? 350x350
-    #except:
-    #   b64 = getBase64String(default_image_url)
-
-    json_dict['appImage'] = primary_dict['voThumbnailUrl']#b64 #Base64 image string 4:3
-    json_dict['webImage'] = primary_dict['voThumbnailUrl']#b64 #supposed to be 16:9
+    json_dict['appImage'] = primary_dict['voThumbnailUrl'] #Base64 image string 4:3
+    json_dict['webImage'] = primary_dict['voThumbnailUrl'] #supposed to be 16:9
     json_dict['url'] = primary_dict['detailUrl']
 
     json_dict['applicationStart'] = primary_dict['ocCreatedDate'].replace("Z", ".000Z")
@@ -206,13 +199,3 @@ def mapRecipients(json_list):
         else:
             new_list.append(recipients_mapping[recipient])
     return new_list
-
-base64_image_cache = {}
-def getBase64String(url):
-    if url in base64_image_cache:
-        return base64_image_cache[url]
-    
-    b64 = base64.b64encode(requests.get(url).content).decode('utf-8')
-    base64_image_cache[url] = b64
-    return b64
-

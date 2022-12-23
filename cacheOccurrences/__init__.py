@@ -37,7 +37,7 @@ jobmap_url = os.environ['THIS_API_URL'] + '/jobmap?code=' + os.environ['JOBMAP_F
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Call cacheOccurences function.')
-
+    start_time = time.time()
     r = requests.get(jobmap_url)
     json_response = r.json()
     batch_size = 100
@@ -77,10 +77,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             #if in db, is json the same?
             db_json_dict = json.loads(in_db_json[index])
             if db_json_dict == dict:
-                logging.info("Same JSON, do nothing")
+                #logging.info("Same JSON, do nothing")
                 same_records += 1
             else:
-                logging.info("Different JSON, set send=1")
+                #logging.info("Different JSON, set send=1")
                 cursor.execute(f"UPDATE occurrences SET send=1, json='{json.dumps(dict)}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{occurrenceId}'")
                 cnxn.commit()
                 updated_records += 1
@@ -91,8 +91,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             cnxn.commit()
             new_records += 1
 
+    end_time = time.time()
+
     return func.HttpResponse(
-        f"Total in SOLR: {len(json_response)}, Not in DB: {len(not_in_db_ids)}, In DB: {len(in_db_ids)}, Inserted: {new_records}, Unchanged: {same_records}, Updated: {updated_records}",
+        f"Total in SOLR: {len(json_response)}, Not in DB: {len(not_in_db_ids)}, In DB: {len(in_db_ids)}, Inserted: {new_records}, Unchanged: {same_records}, Updated: {updated_records}" + " in " + str(end_time-start_time) + " seconds",
         status_code=200
     )
 

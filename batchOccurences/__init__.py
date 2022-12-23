@@ -6,12 +6,16 @@ import requests
 from datetime import date
 import time
 from itertools import islice
+import json
+import base64
 
 db_url = os.environ['DB_URL']
 db = os.environ['DB']
 db_username = os.environ['DB_USERNAME']
 db_password = os.environ['DB_PASSWORD']
 db_driver = os.environ['DB_DRIVER']
+
+default_image_url = os.environ['DEFAULT_IMAGE_URL']
 
 #serverless DB retry
 for i in range(0, 4):
@@ -25,38 +29,31 @@ for i in range(0, 4):
 
 cursor = cnxn.cursor()
 
-hohk_api_url = os.environ['HOHK_API_URL']
-hohk_api_username = os.environ['HOHK_API_USERNAME']
-hohk_api_password = os.environ['HOHK_API_PASSWORD']
-
-occurrence_url_prefix = os.environ['THIS_API_URL'] + '/occurrence?code=' + os.environ['OCCURRENCE_FUNCTION_CODE'] + '&occurrenceId='
-jobmap_url = os.environ['THIS_API_URL'] + '/jobmap?code=' + os.environ['JOBMAP_FUNCTION_CODE']
-
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Call batchOccurences function.')
 
     start_time = time.time()
 
-    r = requests.get(jobmap_url)
-    json_response = r.json()
-    batch_size = 100
+    rows = cursor.execute(f"SELECT json FROM occurrences WHERE send=1").fetchall()
+    list_of_json_dict = [json.loads(row.json) for row in rows]
+
     jc_batch_size = 10
-    total_record_count = 0
+    total_record_count = len(rows)
     batches_sent = 0
     
-    #sending it to SOLR with too many occurrenceIds (100+) seems to cause problems
-    l = []
-    for occurrence_batch in batched(json_response, batch_size):
-        occurrenceIds = ','.join(occurrence_batch)
-        r2 = requests.get(occurrence_url_prefix + occurrenceIds)
-
-        if r2.status_code == 200:
-            l.extend(r2.json())
-        else:
-            logging.error(f"Received status code {r2.status_code} for {occurrence_url_prefix + occurrenceIds}")
-
-    total_record_count = len(l)
     logging.info(f"Received {total_record_count} results to send")
+
+    new_list = []
+    for dict in list_of_json_dict:
+        b64 = ""
+        try: 
+            b64 = getBase64String(dict['appImage']) #these are always square? 350x350
+        except:
+            b64 = getBase64String(default_image_url)
+
+        dict['appImage'] = b64 #Base64 image string 4:3
+        dict['webImage'] = b64 #supposed to be 16:9
+        new_list.append(dict)
 
     accessToken = getAccessToken()
     if accessToken is None:
@@ -65,7 +62,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=400
         )
 
-    for batch in batched(l, jc_batch_size):
+    for batch in batched(new_list, jc_batch_size):
         #send batch
         upsertVOs(accessToken, batch)
         batches_sent += 1
@@ -79,7 +76,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 def batched(iterable, n):
-    "Batch data into lists of length n. The last batch may be shorter."
+    #"Batch data into lists of length n. The last batch may be shorter."
     # batched('ABCDEFG', 3) --> ABC DEF G
     if n < 1:
         raise ValueError('n must be at least one')
@@ -107,10 +104,15 @@ jc_api_upsert_path = os.environ['JC_API_UPSERT_PATH']
 def upsertVOs(accessToken, list):
     retries = 1
     head = {'Authorization': 'Bearer ' + accessToken}
+
     while retries < 3:
         r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
         if r.status_code == 200:
             logging.info(r.json())
+
+            #need to update DB set send=0, updatedAt time.strftime('%Y-%m-%d %H:%M:%S')
+
+
             return
         else:
             wait = retries * 3 
@@ -118,3 +120,12 @@ def upsertVOs(accessToken, list):
             retries += 1
     
     logging.info("Failed to upsert")
+
+base64_image_cache = {}
+def getBase64String(url):
+    if url in base64_image_cache:
+        return base64_image_cache[url]
+    
+    b64 = base64.b64encode(requests.get(url).content).decode('utf-8')
+    base64_image_cache[url] = b64
+    return b64

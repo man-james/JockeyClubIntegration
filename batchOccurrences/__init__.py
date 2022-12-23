@@ -67,7 +67,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         #send batch
         upsertVOs(accessToken, batch)
         batches_sent += 1
-        #need to get ones that are errored, or just ignore them until next day
 
     end_time = time.time()
     
@@ -111,6 +110,13 @@ def upsertVOs(accessToken, list):
         if r.status_code == 200:
             dict = r.json()
             errors = dict.get('error')
+            successes = dict.get('success')
+
+            if successes.get('total') > 0:
+                ids = successes.get('ids')
+                sql_ids = (',').join(f"'{w}'" for w in ids)
+                cursor.execute(f"UPDATE occurrences SET send=0, error='', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId IN ({sql_ids}))")
+                cnxn.commit()
 
             if errors.get('total') > 0:
                 for d in errors.get('data'):

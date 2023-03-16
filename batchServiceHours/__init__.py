@@ -119,7 +119,7 @@ def sendHours(accessToken, list):
                 for d in successes.get('ids'):
                     varUserId = d.get('varUserId')
                     vmpJobId = d.get('vmpJobId')
-                    cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND userId='{varUserId}'")
+                    cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND volunteerId='{varUserId}'")
                     cnxn.commit()
 
             if errors.get('total') > 0:
@@ -127,7 +127,7 @@ def sendHours(accessToken, list):
                     varUserId = d.get('varUserId')
                     vmpJobId = d.get('vmpJobId')
                     message = d.get('message')
-                    cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND userId='{varUserId}'")
+                    cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND volunteerId='{varUserId}'")
                     cnxn.commit()
 
             return

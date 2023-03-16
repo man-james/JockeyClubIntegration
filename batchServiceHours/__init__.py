@@ -33,18 +33,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     batches_sent = 0
     error_count = 0
 
-    l = []
-    rows = cursor.execute(f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours WHERE status='NOT_SENT'").fetchall()
-    for row in rows:
-        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': row.startDate.isoformat(), 'endDateTime': row.endDate.isoformat(), 'hour': float(row.hours)}
-        l.append(dict)
-    
-    if len(l) == 0:
-        return func.HttpResponse(
-            "No Service Hours to send",
-            status_code=200
-        )
-
     accessToken = getAccessToken()
     if accessToken is None:
         return func.HttpResponse(
@@ -52,22 +40,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=400
         )
 
+    l = []
+    rows = cursor.execute(f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours WHERE status='NOT_SENT'").fetchall()
+    for row in rows:
+        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': row.startDate.isoformat(), 'endDateTime': row.endDate.isoformat(), 'hour': float(row.hours)}
+        linked = isUserLinked(accessToken, row.volunteerId)
+        if linked:
+            l.append(dict) 
+    
+    if len(l) == 0:
+        return func.HttpResponse(
+            "No Service Hours to send",
+            status_code=200
+        )
+
     for batch in batched(l, jc_batch_size):
         #send batch
         sendHours(accessToken, batch)
-        #b = batch.copy()
-        #if errors: #can be an empty dict {}
-        #    for error in errors['data']:
-                #remove failures from b so that SQL isn't updated
-        #        b = [i for i in b if not (i['varUserId'] == error['varUserId'] and i['vmpJobId'] == error['vmpJobId'])]
-        #        error_count += 1
-            
-        #logging.info(b)
-        #for dict in b:
-        #    cursor.execute(f"UPDATE serviceHours SET status='SENT', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' where occurrenceId='{dict.get('vmpJobId')}' AND userId='{dict.get('varUserId')}'")
-        #    cnxn.commit()
-        #    total_record_count += 1
-
         batches_sent += 1
 
     end_time = time.time()
@@ -138,3 +127,28 @@ def sendHours(accessToken, list):
             retries += 1
     
     logging.info("Failed to send Hours")
+
+jc_api_volunteer_linkage_path = os.environ['JC_API_VOLUNTEER_LINKAGE_PATH']
+def isUserLinked(accessToken, userId):
+    retries = 1
+    head = {'Authorization': 'Bearer ' + accessToken}
+    while retries < 3:
+        r = requests.get(f"http://{jc_api_url}/{jc_api_volunteer_linkage_path}?varUserId={userId}", headers=head)
+        if r.status_code == 200:
+            dict = r.json()
+            logging.info(dict)
+
+            if dict.has_key('isLink'):
+                return dict.get('isLink')
+            
+            return False
+        elif r.status_code == 404:
+            #Var user ID not found
+            logging.info(f"Var user ID: {userId} not found")
+            return False
+        else:
+            logging.info(r.json())
+            wait = retries * 3 
+            time.sleep(wait)
+            retries += 1
+    return False

@@ -7,7 +7,7 @@ GO
 
 CREATE TABLE [dbo].[serviceHours](
 	[occurrenceId] [nvarchar](50) NOT NULL,
-	[volunteerId] [nvarchar](50) NOT NULL,
+	[volunteerId] [nvarchar](128) NOT NULL,
 	[startDate] [datetime] NOT NULL,
 	[endDate] [datetime] NULL,
 	[hours] [numeric](18, 0) NOT NULL,

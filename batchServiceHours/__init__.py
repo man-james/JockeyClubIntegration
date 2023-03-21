@@ -138,7 +138,7 @@ def isUserLinked(accessToken, userId):
             dict = r.json()
             logging.info(dict)
 
-            if dict.has_key('isLink'):
+            if 'isLink' in dict:
                 return dict.get('isLink')
             
             return False

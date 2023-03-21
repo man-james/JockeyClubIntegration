@@ -40,6 +40,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     jc_batch_size = 10
     total_record_count = len(rows)
     batches_sent = 0
+    success_count = 0
+    error_count = 0
     
     logging.info(f"Received {total_record_count} results to send")
 
@@ -65,13 +67,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     for batch in batched(new_list, jc_batch_size):
         #send batch
-        upsertVOs(accessToken, batch)
+        successes, errors = upsertVOs(accessToken, batch)
+        success_count += successes
+        error_count += errors
         batches_sent += 1
 
     end_time = time.time()
     
+    return_message = "Upsert VOs total record(s): " + str(total_record_count) + ". Sent " + success_count + "record(s) with " + error_count + " error(s), using " + str(batches_sent) + " batches. Time: " + str(end_time-start_time) + " seconds",
+    logging.info(return_message)
     return func.HttpResponse(
-        "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
+        return_message,
         status_code=200
     )
 
@@ -125,7 +131,8 @@ def upsertVOs(accessToken, list):
                     message = d.get('message')
                     cursor.execute(f"UPDATE occurrences SET send=0, status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{id}'")
                     cnxn.commit()
-            return
+
+            return (successes.get('total'), errors.get('total'))
         else:
             logging.info("Error in upsertVOs()")
             logging.info(r.json())
@@ -134,6 +141,7 @@ def upsertVOs(accessToken, list):
             retries += 1
     
     logging.info("Failed to upsert")
+    return (0, len(list))
 
 base64_image_cache = {}
 def getBase64String(url):

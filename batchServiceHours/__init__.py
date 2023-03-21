@@ -31,6 +31,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     jc_batch_size = 100
     total_record_count = 0
     batches_sent = 0
+    success_count = 0
+    error_count = 0
 
     accessToken = getAccessToken()
     if accessToken is None:
@@ -55,13 +57,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     for batch in batched(l, jc_batch_size):
         #send batch
-        sendHours(accessToken, batch)
+        successes, errors = sendHours(accessToken, batch)
+        success_count += successes
+        error_count += errors
         batches_sent += 1
 
     end_time = time.time()
     
+    return_message = "Service Hours total record(s): " + str(total_record_count) + ". Sent " + success_count + "record(s) with " + error_count + " error(s), using " + str(batches_sent) + " batches. Time: " + str(end_time-start_time) + " seconds",
+    logging.info(return_message)
     return func.HttpResponse(
-        "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
+        return_message,
         status_code=200
     )
     
@@ -118,7 +124,7 @@ def sendHours(accessToken, list):
                     cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND volunteerId='{varUserId}'")
                     cnxn.commit()
 
-            return
+            return (successes.get('total'), errors.get('total'))
         else:
             logging.info("Error in sendHours()")
             logging.info(r.json())
@@ -127,6 +133,7 @@ def sendHours(accessToken, list):
             retries += 1
     
     logging.info("Failed to send Hours")
+    return (0, len(list))
 
 jc_api_volunteer_linkage_path = os.environ['JC_API_VOLUNTEER_LINKAGE_PATH']
 def isUserLinked(accessToken, userId):

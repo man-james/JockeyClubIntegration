@@ -31,7 +31,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     jc_batch_size = 100
     total_record_count = 0
     batches_sent = 0
-    error_count = 0
 
     accessToken = getAccessToken()
     if accessToken is None:
@@ -62,7 +61,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     end_time = time.time()
     
     return func.HttpResponse(
-        "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, with " + str(error_count) + " error(s) in " + str(end_time-start_time) + " seconds",
+        "Sent " + str(total_record_count) + " record(s) in " + str(batches_sent) + " batches, in " + str(end_time-start_time) + " seconds",
         status_code=200
     )
     
@@ -119,7 +118,6 @@ def sendHours(accessToken, list):
                     cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND volunteerId='{varUserId}'")
                     cnxn.commit()
 
-            return
         else:
             #logging.info(r.json())
             wait = retries * 3 
@@ -136,7 +134,7 @@ def isUserLinked(accessToken, userId):
         r = requests.get(f"http://{jc_api_url}/{jc_api_volunteer_linkage_path}?varUserId={userId}", headers=head)
         if r.status_code == 200:
             dict = r.json()
-            logging.info(dict)
+            #logging.info(dict)
 
             if 'isLink' in dict:
                 return dict.get('isLink')

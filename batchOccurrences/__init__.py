@@ -127,6 +127,8 @@ def upsertVOs(accessToken, list):
                     cnxn.commit()
             return
         else:
+            logging.info("Error in upsertVOs()")
+            logging.info(r.json())
             wait = retries * 3 
             time.sleep(wait)
             retries += 1

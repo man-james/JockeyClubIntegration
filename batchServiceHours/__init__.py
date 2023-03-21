@@ -120,7 +120,8 @@ def sendHours(accessToken, list):
 
             return
         else:
-            #logging.info(r.json())
+            logging.info("Error in sendHours()")
+            logging.info(r.json())
             wait = retries * 3 
             time.sleep(wait)
             retries += 1

@@ -42,7 +42,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     l = []
     rows = cursor.execute(f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours WHERE status='NOT_SENT'").fetchall()
     for row in rows:
-        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': row.startDate.isoformat(), 'endDateTime': row.endDate.isoformat(), 'hour': float(row.hours)}
+        dict = {'vmpJobId': row.occurrenceId, 'varUserId': row.volunteerId,'startDateTime': (row.startDate.isoformat() + ".000Z"), 'endDateTime': (row.endDate.isoformat() + ".000Z"), 'hour': float(row.hours)}
         linked = isUserLinked(accessToken, row.volunteerId)
         if linked:
             l.append(dict) 
@@ -118,6 +118,7 @@ def sendHours(accessToken, list):
                     cursor.execute(f"UPDATE serviceHours SET status='ERRORED', error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE occurrenceId='{vmpJobId}' AND volunteerId='{varUserId}'")
                     cnxn.commit()
 
+            return
         else:
             #logging.info(r.json())
             wait = retries * 3 

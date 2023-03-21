@@ -64,7 +64,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     end_time = time.time()
     
-    return_message = "Service Hours total record(s): " + str(total_record_count) + ". Sent " + success_count + "record(s) with " + error_count + " error(s), using " + str(batches_sent) + " batches. Time: " + str(end_time-start_time) + " seconds",
+    return_message = f"Service Hours total record(s): {total_record_count}. Sent {success_count} with {error_count} errors, in {batches_sent} batches. Time: {str(end_time-start_time)}s"
     logging.info(return_message)
     return func.HttpResponse(
         return_message,

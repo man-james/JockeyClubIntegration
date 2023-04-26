@@ -101,10 +101,16 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     description = {}
     if has_english:
-        description['en'] = json_dict_eng['description'].strip()
+        if 'description' in json_dict_eng:
+            description['en'] = json_dict_eng['description'].strip()
+        else:
+            description['en'] = "Please visit HandsOn Hong Kong to find out more."
 
     if has_chinese:
-        description['zh'] = json_dict_chi['description'].strip()
+        if 'description' in json_dict_chi:
+            description['zh'] = json_dict_chi['description'].strip()
+        else:
+            description['zh'] = "Please visit HandsOn Hong Kong to find out more."
 
     json_dict['description'] = description
 
@@ -159,7 +165,10 @@ causes_mapping = {
     'Support and assistance': 'OTHERS',
     'Waste Reduction': 'ENVIRONMENT',
     'Health & Wellness': 'HEALTH_SPORTS',
-    'Hygiene': 'HEALTH_SPORTS'
+    'Health and Wellness': 'HEALTH_SPORTS',
+    'Hygiene': 'HEALTH_SPORTS',
+    'Hunger & Homelessness': 'POVERTY',
+    'Education (new)': 'EDUCATION'
 }
 def mapCauses(json_list):
     new_list = []
@@ -189,7 +198,8 @@ recipients_mapping = {
     'People with special educational needs': 'CHILDREN_YOUTH',
     'Refugees and asylum seekers': 'REFUGEES_ASYLUM',
     'Adults': 'GENERAL_PUBLIC',
-    'Environmental education': 'ENVIRONMENT'
+    'Environmental education': 'ENVIRONMENT',
+    'Hunger & homelessness': 'LOW_INCOME'
 }
 def mapRecipients(json_list):
     new_list = []

@@ -84,6 +84,9 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     json_dict['vmpJobId'] = primary_dict['occurrenceId']
     #json_dict['organiserId'] = '2'
+    #The organiser ID has extra AAA characters at the end compared to the spreadsheet submitted by HOHK
+    if len(primary_dict['sponsoringOrganizationID']) == 18:
+        primary_dict['sponsoringOrganizationID'] = primary_dict['sponsoringOrganizationID'][:-3]
     json_dict['organiserId'] = primary_dict['sponsoringOrganizationID']
 
     json_dict['visibility'] = 'public'

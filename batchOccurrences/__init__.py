@@ -98,6 +98,7 @@ def getAccessToken():
     retries = 1
     while retries < 3:
         r = requests.post(f"https://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
+        logging.info(r)
         if r.status_code == 200:
             return r.json().get('accessToken')
         else:

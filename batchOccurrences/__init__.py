@@ -60,6 +60,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     accessToken = getAccessToken()
     if accessToken is None:
+        logging.info('Could not obtain accessToken.')
         return func.HttpResponse(
             "Could not obtain accessToken",
             status_code=400

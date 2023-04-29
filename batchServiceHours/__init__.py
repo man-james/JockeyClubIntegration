@@ -86,7 +86,7 @@ jc_api_login_path = os.environ['JC_API_LOGIN_PATH']
 def getAccessToken():
     retries = 1
     while retries < 3:
-        r = requests.post(f"http://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
+        r = requests.post(f"https://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
         if r.status_code == 200:
             return r.json().get('accessToken')
         else:
@@ -102,7 +102,7 @@ def sendHours(accessToken, list):
     retries = 1
     head = {'Authorization': 'Bearer ' + accessToken}
     while retries < 3:
-        r = requests.post(f"http://{jc_api_url}/{jc_api_hours_path}", json=list, headers=head)
+        r = requests.post(f"https://{jc_api_url}/{jc_api_hours_path}", json=list, headers=head)
         if r.status_code == 200:
             dict = r.json()
             logging.info(dict)
@@ -140,7 +140,7 @@ def isUserLinked(accessToken, userId):
     retries = 1
     head = {'Authorization': 'Bearer ' + accessToken}
     while retries < 3:
-        r = requests.get(f"http://{jc_api_url}/{jc_api_volunteer_linkage_path}?varUserId={userId}", headers=head)
+        r = requests.get(f"https://{jc_api_url}/{jc_api_volunteer_linkage_path}?varUserId={userId}", headers=head)
         if r.status_code == 200:
             dict = r.json()
             #logging.info(dict)

@@ -97,7 +97,7 @@ jc_api_login_path = os.environ['JC_API_LOGIN_PATH']
 def getAccessToken():
     retries = 1
     while retries < 3:
-        r = requests.post(f"http://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
+        r = requests.post(f"https://{jc_api_url}/{jc_api_login_path}", json={'email': jc_api_username})
         if r.status_code == 200:
             return r.json().get('accessToken')
         else:
@@ -113,7 +113,7 @@ def upsertVOs(accessToken, list):
     head = {'Authorization': 'Bearer ' + accessToken}
 
     while retries < 3:
-        r = requests.post(f"http://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
+        r = requests.post(f"https://{jc_api_url}/{jc_api_upsert_path}", json=list, headers=head)
         if r.status_code == 200:
             dict = r.json()
             logging.info(dict)

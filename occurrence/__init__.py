@@ -4,6 +4,7 @@ import azure.functions as func
 import os
 import requests
 from datetime import datetime, timedelta
+import pytz
 import json
 
 hohk_api_url = os.environ['HOHK_API_URL']
@@ -128,10 +129,10 @@ def mapJSONData(json_dict_eng, json_dict_chi):
 
     schedules = {}
     if has_english:
-        schedules['en'] = ("\n").join(["Volunteer Service", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict_eng['locationAddress']])
+        schedules['en'] = ("\n").join(["Volunteer Service", sdt.astimezone(pytz.timezone('Asia/Hong_Kong')).strftime("%a, %d %B %Y %I:%M%p"), edt.astimezone(pytz.timezone('Asia/Hong_Kong')).strftime("%a, %d %B %Y %I:%M%p"), json_dict_eng['locationAddress']])
 
     if has_chinese:
-        schedules['zh'] = ("\n").join(["義工服務", sdt.strftime("%a, %d %B %Y %I:%M%p"), edt.strftime("%a, %d %B %Y %I:%M%p"), json_dict_chi['locationAddress']])
+        schedules['zh'] = ("\n").join(["義工服務", sdt.astimezone(pytz.timezone('Asia/Hong_Kong')).strftime("%a, %d %B %Y %I:%M%p"), edt.astimezone(pytz.timezone('Asia/Hong_Kong')).strftime("%a, %d %B %Y %I:%M%p"), json_dict_chi['locationAddress']])
 
     json_dict['schedules'] = schedules
     json_dict['quota'] = primary_dict['maximumAttendance']

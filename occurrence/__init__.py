@@ -256,6 +256,7 @@ def mapRecipients(json_list):
 
 location_mapping = {
     "Jordan Valley St. Joseph's Catholic Primary School, 80 Choi Ha Road, Kowloon Bay": "KWUN_TONG",
+    "Jordan Valley St. Joseph\u2019s Catholic Primary School, 80 Choi Ha Road, Kowloon Bay": "KWUN_TONG",
     "Tung Chung Catholic Primary School, 8 Yat Tung St, Yau Tung Estate, Tung Chung": "ISLANDS",
     "Nim Shue Wan Nim Shue Wan, Discovery Bay  Hong Kong": "ISLANDS",
     "Room 3B, 3/F, Splendid Centre, 100 Larch Street, Tai Kok Tsui, Kowloon": "YAU_TSIM_MONG",
@@ -292,6 +293,7 @@ location_mapping = {
     "HHCKLA Buddhist Wong Cho Sum Primary School, 38 Po Lam Road N, King Lam Estate, Tseung Kwan O": "SAI_KUNG",
     "Shop 22, G/F, Hoi Lai Shopping Centre, Sham Shui Po": "SHAM_SHUI_PO",
     "Room 606, 6/F, 299QRC Nos, 287-299 Queen's Road Central, Central": "CENTRAL_AND_WESTERN",
+    "Room 606, 6/F, 299QRC Nos, 287-299 Queen\u2019s Road Central, Central": "CENTRAL_AND_WESTERN",
     "Hong Kong Southern District": "SOUTHERN",
     "DIY Project": "HONG_KONG",
     "G/F, Fung Sing Building, 235 Hai Tan Street, Sham Shui Po, Kowloon": "SHAM_SHUI_PO",

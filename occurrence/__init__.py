@@ -167,8 +167,8 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     json_dict["quota"] = primary_dict["maximumAttendance"]
 
     json_dict["locations"] = mapLocation(
-        json_dict_eng.get("locationAddress", "") if has_english else "",
-        json_dict_chi.get("locationAddress", "") if has_chinese else "",
+        json_dict_eng.get("locationAddress", "").strip() if has_english else "",
+        json_dict_chi.get("locationAddress", "").strip() if has_chinese else "",
     )
     if "categoryTags" in primary_dict:
         json_dict["causes"] = mapCauses(primary_dict["categoryTags"])

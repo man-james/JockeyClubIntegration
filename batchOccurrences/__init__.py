@@ -111,7 +111,7 @@ def getAccessToken():
         r = requests.post(
             f"https://{jc_api_url}/{jc_api_login_path}", json={"email": jc_api_username}
         )
-        logging.info(r)
+        # logging.info(r)
         if r.status_code == 200:
             return r.json().get("accessToken")
         else:
@@ -160,6 +160,7 @@ def upsertVOs(accessToken, list):
         else:
             logging.info("Error in upsertVOs()")
             logging.info(r.status_code)
+            logging.info(r.content)
             logging.info(r.json())
             wait = retries * 3
             time.sleep(wait)

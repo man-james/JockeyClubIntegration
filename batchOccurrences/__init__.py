@@ -160,6 +160,10 @@ def upsertVOs(accessToken, list):
         else:
             logging.info("Error in upsertVOs()")
             logging.info(r.status_code)
+            outgoing_ip = requests.get("https://api.ipify.org/?format=json").json()[
+                "ip"
+            ]
+            logging.info(outgoing_ip)
             logging.info(r.content)
             logging.info(r.json())
             wait = retries * 3

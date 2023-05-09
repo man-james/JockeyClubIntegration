@@ -267,7 +267,7 @@ location_mapping = {
     "In-office Hong Kong Hong Kong": "HONG_KONG",
     "International Christian Life Centre, Flat B, 1/F, Ngun Hoi Mansion, 163 Hai Tan Street, Sham Shui Po": "SHAM_SHUI_PO",
     "Unit 2D, Worldwide Centre 123 Tung Chau Street, Tai Kok Tsui": "YAU_TSIM_MONG",
-    "Kowloon & Hong Kong Island": "HONG KONG",
+    "Kowloon & Hong Kong Island": "HONG_KONG",
     "Tseung Kwan O & Hang Hau": "SAI_KUNG",
     "4/F, 64 Tsun Yip Street, South Asia Commercial Centre, Kwun Tong": "KWUN_TONG",
     "Ground Floor, Un Lok House, Un Chau Estate, Shamshuipo, Kowloon, Hong Kong.": "SHAM_SHUI_PO",
@@ -297,6 +297,10 @@ location_mapping = {
     "Hong Kong Southern District": "SOUTHERN",
     "DIY Project": "HONG_KONG",
     "G/F, Fung Sing Building, 235 Hai Tan Street, Sham Shui Po, Kowloon": "SHAM_SHUI_PO",
+    "HandsOn Hong Kong Office, Lai Chi Kok": "SHAM_SHUI_PO",
+    "Farend of Butterfly Beach, Tuen Mun": "TUEN_MUN",
+    "1/F, Car Park Building, Harmony Garden, Siu Sai Wan": "EASTERN",
+    "Hong Kong Wetland Park, Wetland Park Road, Tin Shui Wai": "YUEN_LONG",
 }
 
 

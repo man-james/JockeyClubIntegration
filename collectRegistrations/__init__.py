@@ -58,7 +58,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             f"INSERT INTO registrations(hohkId, jcvarId, status, xml, createdAt, updatedAt, error) VALUES (?, ?, ?, ?, ?, ?, ?)",
             "1",
             "1",
-            "ADDED",
+            "NOT_SENT",
             json_data,
             time.strftime("%Y-%m-%d %H:%M:%S"),
             None,

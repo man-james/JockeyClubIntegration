@@ -58,11 +58,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             f"INSERT INTO registrations(hohkId, jcvarId, status, xml, createdAt, updatedAt, error) VALUES (?, ?, ?, ?, ?, ?, ?)",
             "1",
             "1",
-            "ADDED"
+            "ADDED",
             json_data,
             time.strftime("%Y-%m-%d %H:%M:%S"),
             None,
-            None
+            None,
         )
         cnxn.commit()
         # logging.info(json_data)

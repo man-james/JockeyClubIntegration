@@ -287,7 +287,7 @@ location_mapping = {
     "Eaton Hong Kong, 380 Nathan Road, near hotel parking lot": "YAU_TSIM_MONG",
     "Tsim Sha Tsui area": "YAU_TSIM_MONG",
     "17/F, Block E, Chungking Mansions, 36-44 Nathan Road, Tsim Sha Tsui": "YAU_TSIM_MONG",
-    "To be determined Kowloon Hong Kong Hong Kong": "KOWLOON",
+    "To be determined Kowloon Hong Kong Hong Kong": "HONG_KONG",
     "Aberdeen Sports Ground, 108 Wong Chuk Hang Road, Aberdeen": "SOUTHERN",
     "Virtual Volunteering": "ONLINE",
     "HHCKLA Buddhist Wong Cho Sum Primary School, 38 Po Lam Road N, King Lam Estate, Tseung Kwan O": "SAI_KUNG",
@@ -301,6 +301,7 @@ location_mapping = {
     "Farend of Butterfly Beach, Tuen Mun": "TUEN_MUN",
     "1/F, Car Park Building, Harmony Garden, Siu Sai Wan": "EASTERN",
     "Hong Kong Wetland Park, Wetland Park Road, Tin Shui Wai": "YUEN_LONG",
+    "G/F, Tung Lam Court, Hing Tung Estate, Shau Kei Wan' and 'G/F, Tung Lam Court, Hing Tung Estate, Shau Kei Wan": "EASTERN",
 }
 
 

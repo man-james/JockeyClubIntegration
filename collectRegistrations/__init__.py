@@ -4,6 +4,7 @@ import pyodbc
 import time
 import json
 import xmltodict
+import requests
 
 import azure.functions as func
 
@@ -54,10 +55,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
         dict = xmltodict.parse(req.get_body())
         json_data = json.dumps(dict)
+        connection_data = dict["soapenv:Envelope"]["soapenv:Body"]["notifications"][
+            "Notification"
+        ]["sObject"]
+        hohk_id = connection_data.get("sf:Id")
+        jcvar_id = connection_data.get("sf:JCVAR_UserId__c")
         cursor.execute(
             f"INSERT INTO registrations(hohkId, jcvarId, status, xml, createdAt, updatedAt, error) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            "1",
-            "1",
+            hohk_id,
+            jcvar_id,
             "NOT_SENT",
             json_data,
             time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -65,24 +71,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             None,
         )
         cnxn.commit()
-        # logging.info(json_data)
 
-        # connection_data = dict['soapenv:Envelope']['soapenv:Body']['notifications']['Notification']['sObject']
-        # logging.info(connection_data)
+        accessToken = getAccessToken()
+        if accessToken is None:
+            return func.HttpResponse(
+                xml_res.replace("REPLACE", "false"),
+                status_code=200,
+                headers={"content-type": "application/xml"},
+            )
 
-        # attendance_status = connection_data.get('sf:HOC__Attendance_Status__c')
-        # logging.info(f"Attendence Status {attendance_status}")
-        # if attendance_status == "Attended (and Hours Verified)":
-        # occurrenceId = connection_data.get('sf:HOC__Occurrence__c') #vmpJobId
-        # userId = connection_data.get('sf:HOC_Contact_JCVAR_UserId__c') #varUserId
-        # sdt = connection_data.get('sf:HOC_Occurrence_Start_Date_Time__c') #startDateTime In ISO 8601 datetime format with UTC.
-        # edt = connection_data.get('sf:HOC_Occurrence_End_Date_Time__c') #endDateTime
-        # hours = float(connection_data.get('sf:HOC__Number_Hours_Served__c')) #hour
-
-        # logging.info(f"{occurrenceId} {userId} {sdt} {edt} {hours}")
-        # cursor.execute(f"INSERT INTO serviceHours(occurrenceId, volunteerId, startDate, endDate, hours, status, xml, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        #    occurrenceId, userId, sdt, edt, hours, "NOT_SENT", json_data, time.strftime('%Y-%m-%d %H:%M:%S'), None)
-        # cnxn.commit()
+        linkUser(accessToken, True, jcvar_id)
 
         return func.HttpResponse(
             xml_res.replace("REPLACE", "true"),
@@ -97,3 +95,66 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         status_code=200,
         headers={"content-type": "application/xml"},
     )
+
+
+jc_api_url = os.environ["JC_API_URL"]
+jc_api_username = os.environ["JC_API_USERNAME"]
+jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
+
+
+def getAccessToken():
+    retries = 1
+    while retries < 3:
+        r = requests.post(
+            f"https://{jc_api_url}/{jc_api_login_path}", json={"email": jc_api_username}
+        )
+        if r.status_code == 200:
+            return r.json().get("accessToken")
+        else:
+            wait = retries * 3
+            time.sleep(wait)
+            retries += 1
+
+    return None
+
+
+jc_api_volunteer_link_path = os.environ["JC_API_VOLUNTEER_LINK_PATH"]
+
+
+# currently never unlink
+def linkUser(accessToken, link, userId):
+    retries = 1
+    head = {"Authorization": "Bearer " + accessToken}
+    while retries < 3:
+        r = requests.post(
+            f"https://{jc_api_url}/{jc_api_volunteer_link_path}",
+            json={"varUserId": userId, "isLink": link},
+            headers=head,
+        )
+        if r.status_code == 200:
+            dict = r.json()
+            logging.info(dict)
+
+            if "isLink" in dict:
+                link_text = "LINKED" if link else "UNLINKED"
+                cursor.execute(
+                    f"UPDATE registrations SET status='{link_text}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE jcvarId='{userId}'"
+                )
+                cnxn.commit()
+            else:
+                message = dict.get("message")
+                cursor.execute(
+                    f"UPDATE registrations SET error='{message}', updatedAt='{time.strftime('%Y-%m-%d %H:%M:%S')}' WHERE jcvarId='{userId}'"
+                )
+                cnxn.commit()
+            return
+        elif r.status_code == 404:
+            # Var user ID not found
+            logging.info(f"Var user ID: {userId} not found")
+            return
+        else:
+            logging.info(r.json())
+            wait = retries * 3
+            time.sleep(wait)
+            retries += 1
+    return

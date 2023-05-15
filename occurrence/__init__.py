@@ -255,7 +255,6 @@ def mapRecipients(json_list):
 
 
 location_mapping = {
-    "Jordan Valley St. Joseph's Catholic Primary School, 80 Choi Ha Road, Kowloon Bay": "KWUN_TONG",
     "Jordan Valley St. Joseph\u2019s Catholic Primary School, 80 Choi Ha Road, Kowloon Bay": "KWUN_TONG",
     "Tung Chung Catholic Primary School, 8 Yat Tung St, Yau Tung Estate, Tung Chung": "ISLANDS",
     "Nim Shue Wan Nim Shue Wan, Discovery Bay  Hong Kong": "ISLANDS",
@@ -292,7 +291,6 @@ location_mapping = {
     "Virtual Volunteering": "ONLINE",
     "HHCKLA Buddhist Wong Cho Sum Primary School, 38 Po Lam Road N, King Lam Estate, Tseung Kwan O": "SAI_KUNG",
     "Shop 22, G/F, Hoi Lai Shopping Centre, Sham Shui Po": "SHAM_SHUI_PO",
-    "Room 606, 6/F, 299QRC Nos, 287-299 Queen's Road Central, Central": "CENTRAL_AND_WESTERN",
     "Room 606, 6/F, 299QRC Nos, 287-299 Queen\u2019s Road Central, Central": "CENTRAL_AND_WESTERN",
     "Hong Kong Southern District": "SOUTHERN",
     "DIY Project": "HONG_KONG",
@@ -301,7 +299,13 @@ location_mapping = {
     "Farend of Butterfly Beach, Tuen Mun": "TUEN_MUN",
     "1/F, Car Park Building, Harmony Garden, Siu Sai Wan": "EASTERN",
     "Hong Kong Wetland Park, Wetland Park Road, Tin Shui Wai": "YUEN_LONG",
-    "G/F, Tung Lam Court, Hing Tung Estate, Shau Kei Wan' and 'G/F, Tung Lam Court, Hing Tung Estate, Shau Kei Wan": "EASTERN",
+    "G/F, Tung Lam Court, Hing Tung Estate, Shau Kei Wan": "EASTERN",
+    "Cheung Sha Wan or Wong Tai Sin": "HONG_KONG",
+    "Tin Hau MTR station Exit A2": "WAN_CHAI",
+    "Central Pier No.3": "CENTRAL_AND_WESTERN",
+    "Morrison Hill Road Public Toilet": "WAN_CHAI",
+    "Wanchai MTR station Exit B2": "WAN_CHAI",
+    "Outside Fortress Hill MTR Exit A, in front of Wellcome supermarket": "EASTERN",
 }
 
 

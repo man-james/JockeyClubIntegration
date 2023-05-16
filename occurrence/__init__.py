@@ -306,6 +306,7 @@ location_mapping = {
     "Morrison Hill Road Public Toilet": "WAN_CHAI",
     "Wanchai MTR station Exit B2": "WAN_CHAI",
     "Outside Fortress Hill MTR Exit A, in front of Wellcome supermarket": "EASTERN",
+    "19/F Berkshire House, Taikoo": "EASTERN",
 }
 
 

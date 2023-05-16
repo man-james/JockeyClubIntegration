@@ -74,6 +74,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         accessToken = getAccessToken()
         if accessToken is None:
+            cursor.close()
+            cnxn.close()
             return func.HttpResponse(
                 xml_res.replace("REPLACE", "false"),
                 status_code=200,
@@ -82,6 +84,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         linkUser(accessToken, True, jcvar_id)
 
+        cursor.close()
+        cnxn.close()
         return func.HttpResponse(
             xml_res.replace("REPLACE", "true"),
             status_code=200,
@@ -90,6 +94,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as err:
         logging.error(f"Unexpected {err=}, {type(err)=}")
 
+    cursor.close()
+    cnxn.close()
     return func.HttpResponse(
         xml_res.replace("REPLACE", "false"),
         status_code=200,

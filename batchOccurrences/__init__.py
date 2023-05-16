@@ -74,6 +74,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     accessToken = getAccessToken()
     if accessToken is None:
         logging.info("Could not obtain accessToken.")
+        cursor.close()
+        cnxn.close()
         return func.HttpResponse("Could not obtain accessToken", status_code=400)
 
     for batch in batched(new_list, jc_batch_size):
@@ -87,6 +89,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     return_message = f"Upsert VOs total record(s): {total_record_count}. Sent {success_count} with {error_count} errors, in {batches_sent} batches. Time: {str(end_time-start_time)}s"
     logging.info(return_message)
+    cursor.close()
+    cnxn.close()
     return func.HttpResponse(return_message, status_code=200)
 
 

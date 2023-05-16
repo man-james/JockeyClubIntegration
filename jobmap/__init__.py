@@ -13,28 +13,6 @@ db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
 
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
 hohk_api_url = os.environ["HOHK_API_URL"]
 hohk_api_username = os.environ["HOHK_API_USERNAME"]
 hohk_api_password = os.environ["HOHK_API_PASSWORD"]
@@ -57,20 +35,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     to_add = r.text.split()
     to_add.remove("occurrenceId")  # even if list is empty we will still get the header
 
-    # Also, add things that need changing in VMS?
-    # cursor = cnxn.cursor()
-    # rows = cursor.execute("SELECT occurrenceId FROM occurrences where status='URL_ADDED'").fetchall()
-    # flattened_rows = [item[0] for item in rows]
-
-    # all_occurrences = mergeNoDuplicates(to_add, flattened_rows)
     return func.HttpResponse(
         # json.dumps(all_occurrences),
         json.dumps(to_add),
         mimetype="application/json",
         status_code=200,
     )
-
-
-def mergeNoDuplicates(iterable_1, iterable_2):
-    myset = set(iterable_1).union(set(iterable_2))
-    return sorted(list(myset))

@@ -49,6 +49,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     accessToken = getAccessToken()
     if accessToken is None:
+        cursor.close()
+        cnxn.close()
         return func.HttpResponse("Could not obtain accessToken", status_code=400)
 
     l = []
@@ -68,6 +70,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             l.append(dict)
 
     if len(l) == 0:
+        cursor.close()
+        cnxn.close()
         return func.HttpResponse("No Service Hours to send", status_code=200)
 
     for batch in batched(l, jc_batch_size):
@@ -81,6 +85,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     return_message = f"Service Hours total record(s): {total_record_count}. Sent {success_count} with {error_count} errors, in {batches_sent} batches. Time: {str(end_time-start_time)}s"
     logging.info(return_message)
+    cursor.close()
+    cnxn.close()
     return func.HttpResponse(return_message, status_code=200)
 
 

@@ -130,6 +130,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     end_time = time.time()
 
+    cursor.close()
+    cnxn.close()
     return func.HttpResponse(
         f"Total in SOLR: {len(json_response)}, Not in DB: {len(not_in_db_ids)}, In DB: {len(in_db_ids)}, Inserted: {new_records}, Unchanged: {same_records}, Updated: {updated_records}"
         + " in "

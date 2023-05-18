@@ -11,34 +11,43 @@ db = os.environ["DB"]
 db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
-
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
-cursor = cnxn.cursor()
+jc_api_url = os.environ["JC_API_URL"]
+jc_api_username = os.environ["JC_API_USERNAME"]
+jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
+jc_api_volunteer_linkage_path = os.environ["JC_API_VOLUNTEER_LINKAGE_PATH"]
+jc_api_hours_path = os.environ["JC_API_HOURS_PATH"]
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
+
+    # DB retry
+    cnxn = None
+    for i in range(0, 4):
+        while True:
+            try:
+                cnxn = pyodbc.connect(
+                    "DRIVER="
+                    + db_driver
+                    + ";SERVER="
+                    + db_url
+                    + ";PORT=1433;DATABASE="
+                    + db
+                    + ";UID="
+                    + db_username
+                    + ";PWD="
+                    + db_password
+                    + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+                )
+            except pyodbc.Error as ex:
+                time.sleep(2.0)
+                continue
+            break
+    if cnxn == None:
+        logging.info("Could not connect to database")
+        return func.HttpResponse("Could not obtain accessToken", status_code=400)
+
+    cursor = cnxn.cursor()
 
     start_time = time.time()
     jc_batch_size = 100
@@ -76,7 +85,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     for batch in batched(l, jc_batch_size):
         # send batch
-        successes, errors = sendHours(accessToken, batch)
+        successes, errors = sendHours(accessToken, batch, cnxn, cursor)
         success_count += successes
         error_count += errors
         batches_sent += 1
@@ -100,11 +109,6 @@ def batched(iterable, n):
         yield batch
 
 
-jc_api_url = os.environ["JC_API_URL"]
-jc_api_username = os.environ["JC_API_USERNAME"]
-jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
-
-
 def getAccessToken():
     retries = 1
     while retries < 3:
@@ -121,10 +125,7 @@ def getAccessToken():
     return None
 
 
-jc_api_hours_path = os.environ["JC_API_HOURS_PATH"]
-
-
-def sendHours(accessToken, list):
+def sendHours(accessToken, list, cnxn, cursor):
     # logging.info(list)
     retries = 1
     head = {"Authorization": "Bearer " + accessToken}
@@ -167,9 +168,6 @@ def sendHours(accessToken, list):
 
     logging.info("Failed to send Hours")
     return (0, len(list))
-
-
-jc_api_volunteer_linkage_path = os.environ["JC_API_VOLUNTEER_LINKAGE_PATH"]
 
 
 def isUserLinked(accessToken, userId):

@@ -3,7 +3,6 @@ import os
 import azure.functions as func
 import pyodbc
 import requests
-from datetime import date
 import time
 from itertools import islice
 import json
@@ -14,36 +13,44 @@ db = os.environ["DB"]
 db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
-
+jc_api_url = os.environ["JC_API_URL"]
+jc_api_username = os.environ["JC_API_USERNAME"]
+jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
+jc_api_upsert_path = os.environ["JC_API_UPSERT_PATH"]
 default_image_url = os.environ["DEFAULT_IMAGE_URL"]
-
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
-cursor = cnxn.cursor()
+base64_image_cache = {}
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Call batchOccurences function.")
+
+    # DB retry
+    cnxn = None
+    for i in range(0, 4):
+        while True:
+            try:
+                cnxn = pyodbc.connect(
+                    "DRIVER="
+                    + db_driver
+                    + ";SERVER="
+                    + db_url
+                    + ";PORT=1433;DATABASE="
+                    + db
+                    + ";UID="
+                    + db_username
+                    + ";PWD="
+                    + db_password
+                    + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+                )
+            except pyodbc.Error as ex:
+                time.sleep(2.0)
+                continue
+            break
+    if cnxn == None:
+        logging.info("Could not connect to database")
+        return func.HttpResponse("Could not obtain accessToken", status_code=400)
+
+    cursor = cnxn.cursor()
 
     start_time = time.time()
 
@@ -80,7 +87,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     for batch in batched(new_list, jc_batch_size):
         # send batch
-        successes, errors = upsertVOs(accessToken, batch)
+        successes, errors = upsertVOs(accessToken, batch, cnxn, cursor)
         success_count += successes
         error_count += errors
         batches_sent += 1
@@ -104,11 +111,6 @@ def batched(iterable, n):
         yield batch
 
 
-jc_api_url = os.environ["JC_API_URL"]
-jc_api_username = os.environ["JC_API_USERNAME"]
-jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
-
-
 def getAccessToken():
     retries = 1
     while retries < 3:
@@ -126,10 +128,7 @@ def getAccessToken():
     return None
 
 
-jc_api_upsert_path = os.environ["JC_API_UPSERT_PATH"]
-
-
-def upsertVOs(accessToken, list):
+def upsertVOs(accessToken, list, cnxn, cursor):
     retries = 1
     head = {"Authorization": "Bearer " + accessToken}
 
@@ -176,9 +175,6 @@ def upsertVOs(accessToken, list):
 
     logging.info("Failed to upsert")
     return (0, len(list))
-
-
-base64_image_cache = {}
 
 
 def getBase64String(url):

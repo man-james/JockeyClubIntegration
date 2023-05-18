@@ -15,31 +15,6 @@ db = os.environ["DB"]
 db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
-
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
-cursor = cnxn.cursor()
-
 hohk_api_url = os.environ["HOHK_API_URL"]
 hohk_api_username = os.environ["HOHK_API_USERNAME"]
 hohk_api_password = os.environ["HOHK_API_PASSWORD"]
@@ -56,6 +31,34 @@ jobmap_url = (
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
+    # DB retry
+    cnxn = None
+    for i in range(0, 4):
+        while True:
+            try:
+                cnxn = pyodbc.connect(
+                    "DRIVER="
+                    + db_driver
+                    + ";SERVER="
+                    + db_url
+                    + ";PORT=1433;DATABASE="
+                    + db
+                    + ";UID="
+                    + db_username
+                    + ";PWD="
+                    + db_password
+                    + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+                )
+            except pyodbc.Error as ex:
+                time.sleep(2.0)
+                continue
+            break
+    if cnxn == None:
+        logging.info("Could not connect to database")
+        return func.HttpResponse("Could not obtain accessToken", status_code=400)
+
+    cursor = cnxn.cursor()
+
     logging.info("Call cacheOccurences function.")
     start_time = time.time()
     r = requests.get(jobmap_url)

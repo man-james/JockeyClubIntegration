@@ -13,30 +13,11 @@ db = os.environ["DB"]
 db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
+jc_api_url = os.environ["JC_API_URL"]
+jc_api_username = os.environ["JC_API_USERNAME"]
+jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
+jc_api_volunteer_link_path = os.environ["JC_API_VOLUNTEER_LINK_PATH"]
 
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
-cursor = cnxn.cursor()
 
 xml_res = """<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -51,6 +32,34 @@ xml_res = """<?xml version="1.0" encoding="UTF-8"?>
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
     # logging.info(req.get_body())
+
+    # DB retry
+    cnxn = None
+    for i in range(0, 4):
+        while True:
+            try:
+                cnxn = pyodbc.connect(
+                    "DRIVER="
+                    + db_driver
+                    + ";SERVER="
+                    + db_url
+                    + ";PORT=1433;DATABASE="
+                    + db
+                    + ";UID="
+                    + db_username
+                    + ";PWD="
+                    + db_password
+                    + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+                )
+            except pyodbc.Error as ex:
+                time.sleep(2.0)
+                continue
+            break
+    if cnxn == None:
+        logging.info("Could not connect to database")
+        return func.HttpResponse("Could not obtain accessToken", status_code=400)
+
+    cursor = cnxn.cursor()
 
     try:
         dict = xmltodict.parse(req.get_body())
@@ -82,7 +91,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 headers={"content-type": "application/xml"},
             )
 
-        linkUser(accessToken, True, jcvar_id)
+        linkUser(accessToken, True, jcvar_id, cnxn, cursor)
 
         cursor.close()
         cnxn.close()
@@ -103,11 +112,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
-jc_api_url = os.environ["JC_API_URL"]
-jc_api_username = os.environ["JC_API_USERNAME"]
-jc_api_login_path = os.environ["JC_API_LOGIN_PATH"]
-
-
 def getAccessToken():
     retries = 1
     while retries < 3:
@@ -124,11 +128,8 @@ def getAccessToken():
     return None
 
 
-jc_api_volunteer_link_path = os.environ["JC_API_VOLUNTEER_LINK_PATH"]
-
-
 # currently never unlink
-def linkUser(accessToken, link, userId):
+def linkUser(accessToken, link, userId, cnxn, cursor):
     retries = 1
     head = {"Authorization": "Bearer " + accessToken}
     while retries < 3:

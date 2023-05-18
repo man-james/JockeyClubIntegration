@@ -13,29 +13,6 @@ db_username = os.environ["DB_USERNAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_driver = os.environ["DB_DRIVER"]
 
-# serverless DB retry
-for i in range(0, 4):
-    while True:
-        try:
-            cnxn = pyodbc.connect(
-                "DRIVER="
-                + db_driver
-                + ";SERVER="
-                + db_url
-                + ";PORT=1433;DATABASE="
-                + db
-                + ";UID="
-                + db_username
-                + ";PWD="
-                + db_password
-                + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            )
-        except pyodbc.Error as ex:
-            time.sleep(2.0)
-            continue
-        break
-
-cursor = cnxn.cursor()
 
 xml_res = """<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -48,6 +25,34 @@ xml_res = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
+    # DB retry
+    cnxn = None
+    for i in range(0, 4):
+        while True:
+            try:
+                cnxn = pyodbc.connect(
+                    "DRIVER="
+                    + db_driver
+                    + ";SERVER="
+                    + db_url
+                    + ";PORT=1433;DATABASE="
+                    + db
+                    + ";UID="
+                    + db_username
+                    + ";PWD="
+                    + db_password
+                    + ";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+                )
+            except pyodbc.Error as ex:
+                time.sleep(2.0)
+                continue
+            break
+    if cnxn == None:
+        logging.info("Could not connect to database")
+        return func.HttpResponse("Could not obtain accessToken", status_code=400)
+
+    cursor = cnxn.cursor()
+
     logging.info("Python HTTP trigger function processed a request.")
     # logging.info(req.get_body())
 

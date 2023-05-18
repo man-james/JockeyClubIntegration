@@ -1,17 +1,9 @@
 import logging
 import os
 import azure.functions as func
-import pyodbc
 import requests
-from datetime import date
 import json
 import time
-
-db_url = os.environ["DB_URL"]
-db = os.environ["DB"]
-db_username = os.environ["DB_USERNAME"]
-db_password = os.environ["DB_PASSWORD"]
-db_driver = os.environ["DB_DRIVER"]
 
 hohk_api_url = os.environ["HOHK_API_URL"]
 hohk_api_username = os.environ["HOHK_API_USERNAME"]

@@ -10,7 +10,7 @@ CREATE TABLE [dbo].[serviceHours](
 	[volunteerId] [nvarchar](128) NOT NULL,
 	[startDate] [datetime] NOT NULL,
 	[endDate] [datetime] NULL,
-	[hours] [numeric](18, 0) NOT NULL,
+	[hours] [numeric](20, 2) NOT NULL,
 	[status] [varchar](16) NOT NULL,
 	[xml] [nvarchar](max) NOT NULL,
 	[createdAt] [datetime] NOT NULL,

@@ -59,7 +59,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
         dict = xmltodict.parse(req.get_body())
         json_data = json.dumps(dict)
-        # logging.info(json_data)
+        logging.info(json_data)
 
         connection_data = dict["soapenv:Envelope"]["soapenv:Body"]["notifications"][
             "Notification"

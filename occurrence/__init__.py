@@ -307,6 +307,16 @@ location_mapping = {
     "Wanchai MTR station Exit B2": "WAN_CHAI",
     "Outside Fortress Hill MTR Exit A, in front of Wellcome supermarket": "EASTERN",
     "19/F Berkshire House, Taikoo": "EASTERN",
+    "Bradbury Child Care Centre, 3/F, Holy Trinity Church Centenary Bradbury Building, 135 Ma Tau Chung Road, Ma Tau Wai": "KOWLOON_CITY",
+    "Room 606, 6/F, 299QRC Nos, 287-299 Queen's Road Central, Central": "CENTRAL_AND_WESTERN",
+    "Online via Zoom": "ONLINE",
+    "Block A2, Yau Tong Industrial City, 17-25 Ko Fai Road,Yau Tong": "KWUN_TONG",
+    "Chuan Kei Factory Building, 15-23 Kin Hong Street, Kwai Chung": "KWAI_TSING",
+    "SAHK Jockey Club Elaine Field School (Boarding), 1 Fu Chung Lane, Tai Po, New Territories": "TAI_PO",
+    "Hong Kong Golden Beach, So Kwun Wat (Tuen Mun)": "TUEN_MUN",
+    "Phase 1, Long Ping Estate, Yuen Long, N.T Hong Kong Hong Kong": "YUEN_LONG",
+    "Mei Wan Street, Tsuen Wan": "TSUEN_WAN",
+    "Unit L & K, 1FL, WAI CHEUNG INDUSTRIAL CENTRE, 5 SHEK PAI TAU ROAD, Tuen Mun, HK": "TUEN_MUN",
 }
 
 

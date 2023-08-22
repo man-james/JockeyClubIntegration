@@ -60,39 +60,60 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         dict = xmltodict.parse(req.get_body())
         json_data = json.dumps(dict)
         logging.info(json_data)
+        connection_data = {}
 
-        connection_data = dict["soapenv:Envelope"]["soapenv:Body"]["notifications"][
-            "Notification"
-        ]["sObject"]
-        # logging.info(connection_data)
+        # this can either be a list if multiple entries are marked as served when the form is sent
+        is_list = isinstance(
+            dict["soapenv:Envelope"]["soapenv:Body"]["notifications"]["Notification"],
+            list,
+        )
 
-        attendance_status = connection_data.get("sf:HOC__Attendance_Status__c")
-        # logging.info(f"Attendence Status {attendance_status}")
-        if attendance_status == "Attended (and Hours Verified)":
-            occurrenceId = connection_data.get("sf:HOC__Occurrence__c")  # vmpJobId
-            userId = connection_data.get("sf:HOC_Contact_JCVAR_UserId__c")  # varUserId
-            sdt = connection_data.get(
-                "sf:HOC_Occurrence_Start_Date_Time__c"
-            )  # startDateTime In ISO 8601 datetime format with UTC.
-            edt = connection_data.get(
-                "sf:HOC_Occurrence_End_Date_Time__c"
-            )  # endDateTime
-            hours = float(connection_data.get("sf:HOC__Number_Hours_Served__c"))  # hour
-
-            # logging.info(f"{occurrenceId} {userId} {sdt} {edt} {hours}")
-            cursor.execute(
-                f"INSERT INTO serviceHours(occurrenceId, volunteerId, startDate, endDate, hours, status, xml, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                occurrenceId,
-                userId,
-                sdt,
-                edt,
-                hours,
-                "NOT_SENT",
-                json_data,
-                time.strftime("%Y-%m-%d %H:%M:%S"),
-                None,
+        all_connection_data = []
+        if is_list:
+            all_connection_data = dict["soapenv:Envelope"]["soapenv:Body"][
+                "notifications"
+            ]["Notification"]
+        else:
+            all_connection_data.append(
+                dict["soapenv:Envelope"]["soapenv:Body"]["notifications"][
+                    "Notification"
+                ]
             )
-            cnxn.commit()
+
+        # logging.info(connection_data)
+        for entry in all_connection_data:
+            connection_data = entry["sObject"]
+            attendance_status = connection_data.get("sf:HOC__Attendance_Status__c")
+            # logging.info(f"Attendence Status {attendance_status}")
+            if attendance_status == "Attended (and Hours Verified)":
+                occurrenceId = connection_data.get("sf:HOC__Occurrence__c")  # vmpJobId
+                userId = connection_data.get(
+                    "sf:HOC_Contact_JCVAR_UserId__c"
+                )  # varUserId
+                sdt = connection_data.get(
+                    "sf:HOC_Occurrence_Start_Date_Time__c"
+                )  # startDateTime In ISO 8601 datetime format with UTC.
+                edt = connection_data.get(
+                    "sf:HOC_Occurrence_End_Date_Time__c"
+                )  # endDateTime
+                hours = float(
+                    connection_data.get("sf:HOC__Number_Hours_Served__c")
+                )  # hour
+
+                # logging.info(f"{occurrenceId} {userId} {sdt} {edt} {hours}")
+                cursor.execute(
+                    f"INSERT INTO serviceHours(occurrenceId, volunteerId, startDate, endDate, hours, status, xml, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    occurrenceId,
+                    userId,
+                    sdt,
+                    edt,
+                    hours,
+                    "NOT_SENT",
+                    json_data,
+                    time.strftime("%Y-%m-%d %H:%M:%S"),
+                    None,
+                )
+                cnxn.commit()
 
         cursor.close()
         cnxn.close()

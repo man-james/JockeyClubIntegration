@@ -64,7 +64,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     l = []
     rows = cursor.execute(
-        f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours WHERE status='NOT_SENT'"
+        f"SELECT occurrenceId, volunteerId, startDate, endDate, hours FROM serviceHours s, registrations r WHERE s.status='NOT_SENT' AND r.status='LINKED' and jcvarId=volunteerId"
     ).fetchall()
     for row in rows:
         dict = {
@@ -74,9 +74,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "endDateTime": (row.endDate.isoformat() + ".000Z"),
             "hour": float(row.hours),
         }
-        linked = isUserLinked(accessToken, row.volunteerId)
-        if linked:
-            l.append(dict)
+        # linked = isUserLinked(accessToken, row.volunteerId)
+        # if linked:
+        l.append(dict)
 
     if len(l) == 0:
         cursor.close()

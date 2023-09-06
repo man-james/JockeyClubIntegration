@@ -104,9 +104,13 @@ def mapJSONData(json_dict_eng, json_dict_chi):
     name = {}
     if has_english:
         name["en"] = json_dict_eng["title"]
+    else:
+        name["en"] = None
 
     if has_chinese:
         name["zh"] = json_dict_chi["title"]
+    else:
+        name["zh"] = None
 
     json_dict["name"] = name
 
@@ -115,11 +119,15 @@ def mapJSONData(json_dict_eng, json_dict_chi):
         description["en"] = json_dict_eng.get(
             "description", "Please visit HandsOn Hong Kong to find out more."
         ).strip()
+    else:
+        description["en"] = None
 
     if has_chinese:
         description["zh"] = json_dict_chi.get(
             "description", "請瀏覽到HandsOn Hong Kong 網站了解更多。"
         ).strip()
+    else:
+        description["zh"] = None
 
     json_dict["description"] = description
 

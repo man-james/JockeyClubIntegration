@@ -156,6 +156,8 @@ def mapJSONData(json_dict_eng, json_dict_chi):
                 json_dict_eng.get("locationAddress", ""),
             ]
         )
+    else:
+        schedules["en"] = None
 
     if has_chinese:
         schedules["zh"] = ("\n").join(
@@ -170,6 +172,8 @@ def mapJSONData(json_dict_eng, json_dict_chi):
                 json_dict_chi.get("locationAddress", ""),
             ]
         )
+    else:
+        schedules["zh"] = None
 
     json_dict["schedules"] = schedules
     json_dict["quota"] = primary_dict["maximumAttendance"]

@@ -18,7 +18,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     query += '%20AND%20scheduleType:"Date%20%26%20Time%20Specific"'
 
     # Add criteria 1: At least 4 volunteer spots open
-    query += "%20AND%20volunteersNeeded:[4%20TO%20*]"
+    # query += "%20AND%20volunteersNeeded:[4%20TO%20*]"
 
     # Add criteria 2: Add occurences: now <= (occurence start date) <= 2 months from now
     query += f"%20AND%20endDateTime:[NOW%20TO%20NOW%2B2MONTHS]&NOW={unixtime}"

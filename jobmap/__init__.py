@@ -14,7 +14,7 @@ hohk_api_password = os.environ["HOHK_API_PASSWORD"]
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python Jobmap function processed a request.")
     unixtime = int(time.time() * 1000)
-    query = "?rows=10000&fl=occurrenceId&group=true&group.field=occurrenceId&group.format=simple&group.main=true&group.limit=1&group.ngroups=true&wt=csv&q=IsOccurrenceActive:true%20AND%20IsOrganizationServedActive:true%20AND%20IsOpportunityActive:true"
+    query = "?rows=10000&fl=occurrenceId&group=true&group.field=occurrenceId&group.format=simple&group.main=true&group.limit=1&group.ngroups=true&wt=csv&q=IsOccurrenceActive:true%20AND%20IsOrganizationServedActive:true%20AND%20IsOpportunityActive:true%20AND%20-invitationCode:*"
     query += '%20AND%20scheduleType:"Date%20%26%20Time%20Specific"'
 
     # Add criteria 1: At least 4 volunteer spots open

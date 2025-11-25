@@ -118,10 +118,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     start_time = time.time()
 
-    occurrenceId = req.params.get("occurrenceId")
+    try:
+        req_body = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            "Please pass a JSON body",
+            status_code=400
+        )
+
+    occurrenceId = req_body.get("occurrenceId")
     if not occurrenceId:
         return func.HttpResponse(
-            "Please pass one of occurrenceId on the query string",
+            "Please pass one occurrenceId in the body",
             status_code=400,
         )
 
